@@ -1,0 +1,1255 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BAMS - Health Insights</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="/apiConfig.js"></script>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
+
+      * {
+        font-family: "Inter", sans-serif;
+      }
+
+      .bg-dark-teal {
+        background-color: #004d40;
+      }
+      .text-dark-teal {
+        color: #004d40;
+      }
+      .bg-teal-700 {
+        background-color: #00796b;
+      }
+      .hover\:bg-teal-900:hover {
+        background-color: #004d40;
+      }
+
+      .admin-bar {
+        background: #2c3e50;
+        color: white;
+        padding: 8px 20px;
+        display: flex;
+        justify-content: flex-end;
+        font-size: 14px;
+      }
+      .admin-info {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+      }
+      .logout-btn {
+        background: #e74c3c;
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        border-radius: 3px;
+        cursor: pointer;
+      }
+      .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 50;
+      }
+      .modal-content {
+        background: white;
+        padding: 30px;
+        border-radius: 8px;
+        width: 400px;
+        max-width: 90%;
+      }
+      .error {
+        color: #e74c3c;
+        font-size: 14px;
+      }
+      .hidden {
+        display: none !important;
+      }
+
+      /* Custom animations */
+      @keyframes fadeInUp {
+        from {
+          opacity: 0;
+          transform: translateY(30px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes pulseWarning {
+        0%,
+        100% {
+          transform: scale(1);
+          box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7);
+        }
+        50% {
+          transform: scale(1.02);
+          box-shadow: 0 0 0 10px rgba(220, 38, 38, 0);
+        }
+      }
+
+      @keyframes pulseCritical {
+        0%,
+        100% {
+          transform: scale(1);
+          box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.7);
+        }
+        50% {
+          transform: scale(1.03);
+          box-shadow: 0 0 0 15px rgba(124, 58, 237, 0);
+        }
+      }
+
+      .animate-fade-in-up {
+        animation: fadeInUp 0.6s ease-out;
+      }
+
+      .animate-pulse-warning {
+        animation: pulseWarning 2s infinite;
+      }
+
+      .animate-pulse-critical {
+        animation: pulseCritical 1.5s infinite;
+      }
+
+      /* Custom scrollbar */
+      .custom-scrollbar::-webkit-scrollbar {
+        width: 6px;
+      }
+
+      .custom-scrollbar::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 10px;
+      }
+
+      .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #c1c1c1;
+        border-radius: 10px;
+      }
+
+      .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: #a8a8a8;
+      }
+
+      /* Card hover effects */
+      .insight-card {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .insight-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+        transition: left 0.5s ease;
+      }
+
+      .insight-card:hover::before {
+        left: 100%;
+      }
+
+      .insight-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.15);
+      }
+
+      /* Emergency cards */
+      .emergency-card {
+        border: 3px solid;
+      }
+
+      /* Status indicators */
+      .status-indicator {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 8px;
+      }
+
+      /* Glass morphism effect */
+      .glass-card {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+
+      /* Health impact meter */
+      .health-meter {
+        height: 8px;
+        border-radius: 4px;
+        background: linear-gradient(90deg, #a8e05f 0%, #a8e05f 16.67%, #fdd74b 16.67%, #fdd74b 33.33%, #ff9b57 33.33%, #ff9b57 50%, #ff6b6b 50%, #ff6b6b 66.67%, #a97cf0 66.67%, #a97cf0 83.33%, #c07a7a 83.33%, #c07a7a 100%);
+        position: relative;
+        overflow: hidden;
+      }
+
+      /* Traffic Pollution Index Color Definitions */
+      .tpi-baik {
+        background: linear-gradient(135deg, #a8e05f 0%, #86c843 100%);
+      }
+      .tpi-sedang {
+        background: linear-gradient(135deg, #fdd74b 0%, #fbc502 100%);
+      }
+      .tpi-tidak-sehat-sensitif {
+        background: linear-gradient(135deg, #ff9b57 0%, #ff7a24 100%);
+      }
+      .tpi-tidak-sehat {
+        background: linear-gradient(135deg, #ff6b6b 0%, #ff3838 100%);
+      }
+      .tpi-sangat-tidak-sehat {
+        background: linear-gradient(135deg, #a97cf0 0%, #8c52ff 100%);
+      }
+      .tpi-berbahaya {
+        background: linear-gradient(135deg, #c07a7a 0%, #a85555 100%);
+      }
+
+      .text-tpi-baik {
+        color: #4a7c1f;
+      }
+      .text-tpi-sedang {
+        color: #b08900;
+      }
+      .text-tpi-tidak-sehat-sensitif {
+        color: #cc5500;
+      }
+      .text-tpi-tidak-sehat {
+        color: #cc0000;
+      }
+      .text-tpi-sangat-tidak-sehat {
+        color: #6b3dcc;
+      }
+      .text-tpi-berbahaya {
+        color: #8b4513;
+      }
+
+      .bg-tpi-baik {
+        background-color: #a8e05f;
+      }
+      .bg-tpi-sedang {
+        background-color: #fdd74b;
+      }
+      .bg-tpi-tidak-sehat-sensitif {
+        background-color: #ff9b57;
+      }
+      .bg-tpi-tidak-sehat {
+        background-color: #ff6b6b;
+      }
+      .bg-tpi-sangat-tidak-sehat {
+        background-color: #a97cf0;
+      }
+      .bg-tpi-berbahaya {
+        background-color: #c07a7a;
+      }
+    </style>
+  </head>
+  <body class="bg-gradient-to-br from-teal-50 to-cyan-100 font-sans flex flex-col h-screen">
+    <!-- Admin Bar -->
+    <div id="adminBar" class="admin-bar hidden">
+      <div class="admin-info">
+        <span id="adminName">👤 Admin</span>
+      </div>
+    </div>
+
+    <header class="bg-white text-dark-teal p-4 flex items-center justify-between h-16 shadow-sm z-20 flex-shrink-0 glass-card">
+      <div class="flex items-center">
+        <img src="logo-bams.png" alt="BAMS Logo" class="h-12 w-auto mr-3" />
+        <div class="sm:block">
+          <h1 class="text-xl font-bold">BAMS</h1>
+          <p class="text-sm opacity-80">Bali Air Monitoring System</p>
+        </div>
+      </div>
+      <div class="flex items-center space-x-2 sm:space-x-4">
+        <button id="health-helpline-btn" class="bg-teal-700 hover:bg-teal-600 text-white py-2 px-3 rounded-lg text-xs sm:text-sm flex items-center transition-all duration-300 hover:scale-105 shadow-md">
+          <svg class="w-4 h-4 sm:w-5 sm:h-5 mr-1 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          <span class="sm:inline">Health Helpline</span>
+        </button>
+        <div class="relative" id="adminSection">
+          <!-- Updated by JS -->
+        </div>
+      </div>
+    </header>
+
+    <div class="flex flex-1 overflow-hidden">
+      <aside class="w-24 bg-dark-teal flex flex-col items-center py-4 space-y-8 z-10 flex-shrink-0 shadow-lg">
+        <a href="./index.html" class="flex flex-col items-center p-4 text-white rounded-lg hover:bg-teal-900 w-full transition-all duration-300 hover:scale-105" style="text-decoration: none">
+          <svg class="w-8 h-8 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
+            ></path>
+          </svg>
+          <span class="text-xs">Dashboard</span>
+        </a>
+        <a href="./history.html" class="flex flex-col items-center p-4 text-white rounded-lg hover:bg-teal-900 w-full transition-all duration-300 hover:scale-105" style="text-decoration: none">
+          <svg class="w-8 h-8 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          <span class="text-xs">History</span>
+        </a>
+        <a href="./insights.html" class="flex flex-col items-center p-4 text-white bg-teal-700 rounded-lg w-full transition-all duration-300 hover:scale-105 shadow-md" style="text-decoration: none">
+          <svg class="w-8 h-8 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          <span class="text-xs">Insights</span>
+        </a>
+      </aside>
+
+      <main class="flex-1 p-6 overflow-y-auto custom-scrollbar">
+        <!-- Header Section -->
+        <div class="animate-fade-in-up">
+          <div class="flex justify-between items-center mb-2">
+            <h2 class="text-3xl font-bold text-gray-800 bg-gradient-to-r from-teal-700 to-cyan-600 bg-clip-text text-transparent">Health Insights & Safety Guide</h2>
+            <div class="text-sm text-gray-600 bg-white/80 px-3 py-1 rounded-full">Last updated: <span id="currentTime" class="font-semibold">--:--</span></div>
+          </div>
+          <p class="text-gray-600 mb-6">Panduan lengkap kesehatan berdasarkan AQI (PM2.5 - CO)</p>
+        </div>
+
+        <!-- Traffic Pollution Index Scale Overview -->
+        <div class="glass-card rounded-2xl p-6 mb-8 shadow-lg animate-fade-in-up">
+          <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+            <svg class="w-6 h-6 mr-2 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+              ></path>
+            </svg>
+            Skala AQI (PM2.5 - CO) - 6 Tingkat
+          </h3>
+          <div class="health-meter mb-4"></div>
+          <div class="grid grid-cols-6 gap-4 mt-6">
+            <div class="text-center p-3 rounded-lg tpi-baik">
+              <div class="font-bold text-sm mb-1 text-white">Baik</div>
+              <div class="text-xs text-white">CO: 0.0-4.4</div>
+              <div class="text-xs text-white">PM2.5: 0-12.0</div>
+            </div>
+            <div class="text-center p-3 rounded-lg tpi-sedang">
+              <div class="font-bold text-sm mb-1 text-white">Sedang</div>
+              <div class="text-xs text-white">CO: 4.5-9.4</div>
+              <div class="text-xs text-white">PM2.5: 12.1-35.4</div>
+            </div>
+            <div class="text-center p-3 rounded-lg tpi-tidak-sehat-sensitif">
+              <div class="font-bold text-sm mb-1 text-white">Tidak Sehat Sensitif</div>
+              <div class="text-xs text-white">CO: 9.5-12.4</div>
+              <div class="text-xs text-white">PM2.5: 35.5-55.4</div>
+            </div>
+            <div class="text-center p-3 rounded-lg tpi-tidak-sehat">
+              <div class="font-bold text-sm mb-1 text-white">Tidak Sehat</div>
+              <div class="text-xs text-white">CO: 12.5-15.4</div>
+              <div class="text-xs text-white">PM2.5: 55.5-150.4</div>
+            </div>
+            <div class="text-center p-3 rounded-lg tpi-sangat-tidak-sehat">
+              <div class="font-bold text-sm mb-1 text-white">Sangat Tidak Sehat</div>
+              <div class="text-xs text-white">CO: 15.5-30.4</div>
+              <div class="text-xs text-white">PM2.5: 150.5-250.4</div>
+            </div>
+            <div class="text-center p-3 rounded-lg tpi-berbahaya">
+              <div class="font-bold text-sm mb-1 text-white">Berbahaya</div>
+              <div class="text-xs text-white">CO: ≥30.5</div>
+              <div class="text-xs text-white">PM2.5: ≥250.5</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Traffic Pollution Index Statistics Section -->
+        <div id="tpi-statistics" class="glass-card rounded-2xl p-6 mb-8 shadow-lg animate-fade-in-up">
+          <!-- Dynamic TPI statistics will be loaded here -->
+          <div class="flex justify-center items-center py-8">
+            <div class="text-center">
+              <div class="loading mx-auto mb-4"></div>
+              <p class="text-gray-500">Loading AQI (PM2.5 - CO) statistics...</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dynamic Health Recommendations -->
+        <div id="recommendations-container" class="mb-8">
+          <!-- Dynamic content will be loaded here -->
+          <div class="flex justify-center items-center py-12">
+            <div class="text-center">
+              <div class="loading mx-auto mb-4"></div>
+              <p class="text-gray-500">Loading dynamic health recommendations...</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Health Tips Section -->
+        <div id="health-tips" class="glass-card rounded-2xl p-6 mb-8 shadow-lg">
+          <!-- Dynamic health tips will be loaded here -->
+          <div class="flex justify-center items-center py-8">
+            <div class="text-center">
+              <div class="loading mx-auto mb-4"></div>
+              <p class="text-gray-500">Loading health tips...</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Emergency Contact Section -->
+        <div class="glass-card rounded-2xl p-6 shadow-lg mb-8">
+          <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+            <svg class="w-6 h-6 mr-2 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
+              ></path>
+            </svg>
+            Kontak Darurat & Bantuan - Provinsi Bali
+          </h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="text-center p-4 bg-red-50 rounded-xl border border-red-200">
+              <div class="text-2xl mb-2">🚑</div>
+              <p class="text-sm text-red-800 font-medium">Ambulans</p>
+              <p class="text-xs text-red-600 mt-1">118 / 119</p>
+            </div>
+            <div class="text-center p-4 bg-red-50 rounded-xl border border-red-200">
+              <div class="text-2xl mb-2">🏥</div>
+              <p class="text-sm text-red-800 font-medium">RSUP Sanglah Denpasar</p>
+              <p class="text-xs text-red-600 mt-1">(0361) 227911</p>
+            </div>
+            <div class="text-center p-4 bg-red-50 rounded-xl border border-red-200">
+              <div class="text-2xl mb-2">👨‍⚕️</div>
+              <p class="text-sm text-red-800 font-medium">Dinas Kesehatan Bali</p>
+              <p class="text-xs text-red-600 mt-1">(0361) 229490</p>
+            </div>
+            <div class="text-center p-4 bg-red-50 rounded-xl border border-red-200">
+              <div class="text-2xl mb-2">📞</div>
+              <p class="text-sm text-red-800 font-medium">Posko COVID-19 Bali</p>
+              <p class="text-xs text-red-600 mt-1">119</p>
+            </div>
+          </div>
+          <div class="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="text-center p-4 bg-red-50 rounded-xl border border-red-200">
+              <div class="text-2xl mb-2">🚒</div>
+              <p class="text-sm text-red-800 font-medium">Pemadam Kebakaran</p>
+              <p class="text-xs text-red-600 mt-1">113</p>
+            </div>
+            <div class="text-center p-4 bg-red-50 rounded-xl border border-red-200">
+              <div class="text-2xl mb-2">👮</div>
+              <p class="text-sm text-red-800 font-medium">Polisi</p>
+              <p class="text-xs text-red-600 mt-1">110</p>
+            </div>
+            <div class="text-center p-4 bg-red-50 rounded-xl border border-red-200">
+              <div class="text-2xl mb-2">🆘</div>
+              <p class="text-sm text-red-800 font-medium">Bali Emergency</p>
+              <p class="text-xs text-red-600 mt-1">112</p>
+            </div>
+            <div class="text-center p-4 bg-red-50 rounded-xl border border-red-200">
+              <div class="text-2xl mb-2">🏥</div>
+              <p class="text-sm text-red-800 font-medium">RS Umum Badung</p>
+              <p class="text-xs text-red-600 mt-1">(0361) 8947777</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Health Tips Section -->
+        <div class="glass-card rounded-2xl p-6 shadow-lg">
+          <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+            <svg class="w-6 h-6 mr-2 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+            </svg>
+            Tips Perlindungan Pernapasan
+          </h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="text-center p-4 bg-teal-50 rounded-xl hover:bg-teal-100 transition-colors duration-300">
+              <div class="text-2xl mb-2">😷</div>
+              <p class="text-sm text-teal-800 font-medium">Masker yang Tepat</p>
+              <p class="text-xs text-teal-600 mt-1">N95 untuk polusi tinggi, surgical untuk sedang</p>
+            </div>
+            <div class="text-center p-4 bg-teal-50 rounded-xl hover:bg-teal-100 transition-colors duration-300">
+              <div class="text-2xl mb-2">🏠</div>
+              <p class="text-sm text-teal-800 font-medium">Ruangan Sehat</p>
+              <p class="text-xs text-teal-600 mt-1">Air purifier, tanaman pembersih udara</p>
+            </div>
+            <div class="text-center p-4 bg-teal-50 rounded-xl hover:bg-teal-100 transition-colors duration-300">
+              <div class="text-2xl mb-2">💧</div>
+              <p class="text-sm text-teal-800 font-medium">Hidrasi</p>
+              <p class="text-xs text-teal-600 mt-1">Minum 2-3 liter air putih sehari</p>
+            </div>
+            <div class="text-center p-4 bg-teal-50 rounded-xl hover:bg-teal-100 transition-colors duration-300">
+              <div class="text-2xl mb-2">🥦</div>
+              <p class="text-sm text-teal-800 font-medium">Makanan Sehat</p>
+              <p class="text-xs text-teal-600 mt-1">Antioksidan, vitamin C, omega-3</p>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- Login Modal -->
+    <div id="loginModal" class="modal-overlay hidden">
+      <div class="modal-content">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">Admin Login</h2>
+        <form id="loginForm" class="space-y-4">
+          <div>
+            <input type="text" id="username" placeholder="Username" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500" required />
+          </div>
+          <div>
+            <input type="password" id="password" placeholder="Password" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500" required />
+          </div>
+          <p id="loginError" class="error hidden text-red-500 text-sm"></p>
+          <button type="submit" class="w-full bg-teal-600 hover:bg-teal-700 text-white py-2 px-4 rounded-md transition duration-300">Login</button>
+        </form>
+        <button id="closeLoginBtn" class="w-full mt-3 bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 px-4 rounded-md transition duration-300">Cancel</button>
+      </div>
+    </div>
+
+    <script>
+      const LOGIN_API = "https://9l5vu3c1zl.execute-api.ap-southeast-1.amazonaws.com/prod/login";
+
+      let isAdmin = false;
+      let adminToken = "";
+      let adminUsername = "";
+
+      // Authentication System
+      const checkAuth = () => {
+        const token = localStorage.getItem("adminToken");
+        const adminData = localStorage.getItem("adminData");
+
+        if (token && adminData) {
+          try {
+            const parsedAdmin = JSON.parse(adminData);
+            isAdmin = true;
+            adminToken = token;
+            adminUsername = parsedAdmin.username;
+            updateUIForAdmin();
+            return true;
+          } catch (error) {
+            console.error("Error parsing admin data:", error);
+            logout();
+          }
+        } else {
+          isAdmin = false;
+          updateUIForUser();
+        }
+        return false;
+      };
+
+      // Update UI for Admin
+      const updateUIForAdmin = () => {
+        const adminBar = document.getElementById("adminBar");
+        const adminSection = document.getElementById("adminSection");
+        const addNewSection = document.getElementById("addNewSection");
+
+        if (adminBar) {
+          adminBar.classList.remove("hidden");
+          const adminNameSpan = document.getElementById("adminName");
+          if (adminNameSpan) {
+            adminNameSpan.textContent = `👤 ${adminUsername}`;
+          }
+        }
+
+        if (addNewSection) addNewSection.classList.remove("hidden");
+
+        if (adminSection) {
+          adminSection.innerHTML = `
+      <div class="flex items-center space-x-2 text-dark-teal">
+        <span class="w-8 h-8 bg-teal-200 text-dark-teal rounded-full flex items-center justify-center font-bold">
+          ${adminUsername.charAt(0).toUpperCase()}
+        </span>
+        <span class="hidden md:inline">${adminUsername}</span>
+        <button id="logoutBtn" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg text-xs flex items-center transition-all duration-300">
+          Logout
+        </button>
+      </div>
+    `;
+
+          // Add logout event listener
+          setTimeout(() => {
+            const logoutBtn = document.getElementById("logoutBtn");
+            if (logoutBtn) {
+              logoutBtn.addEventListener("click", logout);
+            }
+          }, 100);
+        }
+      };
+
+      // Update UI for Regular User
+      const updateUIForUser = () => {
+        const adminBar = document.getElementById("adminBar");
+        const adminSection = document.getElementById("adminSection");
+
+        if (adminBar) adminBar.classList.add("hidden");
+        if (adminSection) {
+          adminSection.innerHTML = `
+            <button id="loginBtn" class="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg text-sm flex items-center transition-all duration-300 hover:scale-105">
+              Admin Login
+            </button>
+          `;
+
+          // Add login event listener
+          setTimeout(() => {
+            const loginBtn = document.getElementById("loginBtn");
+            if (loginBtn) {
+              loginBtn.addEventListener("click", () => {
+                window.location.href = "login.html";
+              });
+            }
+          }, 100);
+        }
+      };
+
+      // Logout function
+      const logout = () => {
+        localStorage.removeItem("adminToken");
+        localStorage.removeItem("adminData");
+        isAdmin = false;
+        adminToken = "";
+        adminUsername = "";
+        checkAuth();
+
+        // Refresh the page to update UI
+        window.location.reload();
+      };
+
+      // Login Modal Functions
+      const showLoginModal = () => {
+        document.getElementById("loginModal").classList.remove("hidden");
+      };
+
+      const closeLoginModal = () => {
+        document.getElementById("loginModal").classList.add("hidden");
+      };
+
+      // Handle Login
+      const handleLogin = async (e) => {
+        e.preventDefault();
+        const username = document.getElementById("username").value;
+        const password = document.getElementById("password").value;
+        const errorElem = document.getElementById("loginError");
+
+        try {
+          const response = await fetch(LOGIN_API, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username, password }),
+          });
+
+          const data = await response.json();
+
+          if (data.message === "Login berhasil" && data.token && data.username) {
+            // Login successful
+            localStorage.setItem("adminToken", data.token);
+            localStorage.setItem(
+              "adminData",
+              JSON.stringify({
+                username: data.username,
+              })
+            );
+
+            closeLoginModal();
+            checkAuth();
+
+            // Show success message
+            alert("Login successful! Welcome " + data.username);
+          } else {
+            // Login failed
+            errorElem.textContent = data.message || "Username atau password salah";
+            errorElem.classList.remove("hidden");
+          }
+        } catch (error) {
+          errorElem.textContent = "Login error: " + error.message;
+          errorElem.classList.remove("hidden");
+        }
+      };
+
+      // Traffic Pollution Index Recommendations with CO and PM2.5 parameters
+      const trafficPollutionRecommendations = [
+        {
+          status: "Baik",
+          color: "#22C55E",
+          co_range: "0.0 - 4.4 ppm",
+          pm25_range: "0 - 12.0 µg/m³",
+          health_effects: "Kualitas udara sangat baik untuk kesehatan. Tidak ada risiko signifikan dari polusi lalu lintas.",
+          recommendations: [
+            "Kondisi ideal untuk semua aktivitas luar ruangan",
+            "Tidak perlu menggunakan masker untuk perlindungan polusi",
+            "Aman untuk olahraga dan aktivitas fisik di luar ruangan",
+            "Ventilasi alami dengan membuka jendela sangat dianjurkan",
+            "Ideal untuk kelompok sensitif (anak-anak, lansia, penderita asma)",
+          ],
+        },
+        {
+          status: "Sedang",
+          color: "#FACC15",
+          co_range: "4.5 - 9.4 ppm",
+          pm25_range: "12.1 - 35.4 µg/m³",
+          health_effects: "Polusi lalu lintas dalam batas wajar. Kelompok sensitif mungkin merasakan iritasi ringan.",
+          recommendations: [
+            "Tetap dapat beraktivitas normal di luar ruangan",
+            "Kelompok sensitif sebaiknya membatasi aktivitas fisik berat di luar",
+            "Perhatikan gejala iritasi mata, hidung, atau tenggorokan",
+            "Masker surgical dapat digunakan jika merasa tidak nyaman",
+            "Batasi waktu di area lalu lintas padat jika memiliki masalah pernapasan",
+          ],
+        },
+        {
+          status: "Tidak Sehat bagi Kelompok Sensitif",
+          color: "#FB923C",
+          co_range: "9.5 - 12.4 ppm",
+          pm25_range: "35.5 - 55.4 µg/m³",
+          health_effects: "Polusi lalu lintas dapat mempengaruhi kelompok sensitif. Karbon monoksida dan partikel halus mulai meningkat.",
+          recommendations: [
+            "Kelompok sensitif harus mengurangi aktivitas luar ruangan",
+            "Gunakan masker N95 saat berada di dekat jalan raya",
+            "Batasi waktu di luar ruangan maksimal 2 jam",
+            "Hindari olahraga di luar ruangan",
+            "Tutup jendela rumah yang menghadap jalan raya",
+            "Minum air putih lebih banyak untuk membantu detoksifikasi",
+          ],
+        },
+        {
+          status: "Tidak Sehat",
+          color: "#EF4444",
+          co_range: "12.5 - 15.4 ppm",
+          pm25_range: "55.5 - 150.4 µg/m³",
+          health_effects: "Semua orang mungkin merasakan efek kesehatan. Risiko gangguan pernapasan meningkat.",
+          recommendations: [
+            "Batasi semua aktivitas di luar ruangan",
+            "Wajib menggunakan masker N95 saat keluar rumah",
+            "Tutup semua jendela dan gunakan air purifier",
+            "Hindari area dengan kepadatan lalu lintas tinggi",
+            "Pasien jantung dan paru-paru harus tetap di dalam ruangan",
+            "Segera cari udara bersih jika mengalami sesak napas",
+          ],
+        },
+        {
+          status: "Sangat Tidak Sehat",
+          color: "#8B5CF6",
+          co_range: "15.5 - 30.4 ppm",
+          pm25_range: "150.5 - 250.4 µg/m³",
+          health_effects: "Peringatan kesehatan serius. Polusi lalu lintas berisiko menyebabkan gangguan kesehatan permanen.",
+          recommendations: [
+            "Hindari semua aktivitas di luar ruangan",
+            "Tetap di dalam ruangan dengan sistem ventilasi tertutup",
+            "Gunakan air purifier dengan filter HEPA dan karbon aktif",
+            "Masker respirator wajib digunakan jika harus keluar",
+            "Pasien kronis harus mengikuti panduan dokter dengan ketat",
+            "Persiapkan ruangan bertekanan positif jika memungkinkan",
+          ],
+        },
+        {
+          status: "Berbahaya",
+          color: "#A85555",
+          co_range: "≥30.5 ppm",
+          pm25_range: "≥250.5 µg/m³",
+          health_effects: "Kondisi darurat kesehatan. Paparan singkat pun dapat menyebabkan kerusakan kesehatan serius.",
+          recommendations: [
+            "JANGAN keluar ruangan kecuali keadaan darurat",
+            "Tutup rapat semua jendela dan pintu",
+            "Gunakan sistem penyaring udara tingkat tinggi",
+            "Evakuasi ke area dengan polusi lebih rendah jika memungkinkan",
+            "Monitor gejala keracunan karbon monoksida secara ketat",
+            "Segera cari pertolongan medis jika pusing, mual, atau sesak napas",
+          ],
+        },
+      ];
+
+      // Initialize insights when DOM is loaded
+      document.addEventListener("DOMContentLoaded", function () {
+        checkAuth();
+
+        // Add event listeners for login modal (pakai pengecekan supaya aman)
+        const loginFormEl = document.getElementById("loginForm");
+        if (loginFormEl) loginFormEl.addEventListener("submit", handleLogin);
+
+        const closeLoginBtnEl = document.getElementById("closeLoginBtn");
+        if (closeLoginBtnEl) closeLoginBtnEl.addEventListener("click", closeLoginModal);
+
+        // Health Helpline (Insights) – pasang event setelah semua elemen ada
+        const hBtn = document.getElementById("health-helpline-btn");
+        const hModal = document.getElementById("health-helpline-modal");
+        const hClose = document.getElementById("close-modal");
+
+        if (hBtn && hModal) {
+          hBtn.addEventListener("click", () => {
+            hModal.style.display = "flex"; // flex supaya modal di tengah
+            document.body.style.overflow = "hidden";
+          });
+        }
+
+        if (hClose && hModal) {
+          hClose.addEventListener("click", () => {
+            hModal.style.display = "none";
+            document.body.style.overflow = "auto";
+          });
+        }
+
+        if (hModal) {
+          hModal.addEventListener("click", (e) => {
+            if (e.target === hModal) {
+              hModal.style.display = "none";
+              document.body.style.overflow = "auto";
+            }
+          });
+
+          document.addEventListener("keydown", (e) => {
+            if (e.key === "Escape" && hModal.style.display === "flex") {
+              hModal.style.display = "none";
+              document.body.style.overflow = "auto";
+            }
+          });
+        }
+
+        // Update time function
+        function updateTime() {
+          const now = new Date();
+          document.getElementById("currentTime").textContent = now.toLocaleTimeString("id-ID", {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+          });
+        }
+
+        updateTime();
+        setInterval(updateTime, 1000);
+
+        // Load dynamic recommendations
+        function loadDynamicRecommendations() {
+          const container = document.getElementById("recommendations-container");
+          if (!container) return;
+
+          container.innerHTML = trafficPollutionRecommendations
+            .map(
+              (rec, index) => `
+          
+    <div class="insight-card bg-white border-l-8 rounded-2xl shadow-lg p-6 mb-6 transition-all duration-300 hover:shadow-xl"
+         style="border-left-color: ${rec.color}">
+      <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-4">
+        <div class="flex items-center mb-3 lg:mb-0">
+          <div class="w-4 h-4 rounded-full mr-3" style="background-color: ${rec.color}"></div>
+          <h3 class="text-2xl font-bold" style="color: ${rec.color}">
+            ${index + 1}. ${rec.status}
+          </h3>
+        </div>
+        <div class="flex flex-col items-end">
+          <span class="px-4 py-2 text-white text-sm font-semibold rounded-full shadow-md mb-1"
+                style="background-color: ${rec.color}">
+            CO: ${rec.co_range}
+          </span>
+          <span class="px-4 py-2 text-white text-sm font-semibold rounded-full shadow-md"
+                style="background-color: ${rec.color}; opacity: 0.9">
+            PM2.5: ${rec.pm25_range}
+          </span>
+        </div>
+      </div>
+
+      <div class="mb-4 p-4 bg-gray-50 rounded-xl">
+        <p class="font-semibold text-gray-700">${rec.health_effects}</p>
+      </div>
+
+      <div class="space-y-4">
+        ${rec.recommendations
+          .map(
+            (recText, recIndex) => `
+          <div class="flex items-start bg-gray-50 rounded-xl p-4 shadow-sm transition-all duration-200 hover:bg-white hover:shadow-md">
+            <span class="flex-shrink-0 w-6 h-6 rounded-full text-center text-sm font-bold mr-3 mt-0.5 shadow-sm text-white"
+                  style="background-color: ${rec.color}">
+              ${recIndex + 1}
+            </span>
+            <span class="text-gray-800 leading-relaxed font-medium">${recText}</span>
+          </div>
+        `
+          )
+          .join("")}
+      </div>
+    </div>
+  `
+            )
+            .join("");
+
+          setTimeout(() => {
+            const cards = container.querySelectorAll(".insight-card");
+            cards.forEach((card, index) => {
+              card.style.animationDelay = `${index * 0.1}s`;
+              card.classList.add("animate-fade-in-up");
+            });
+          }, 100);
+        }
+
+        // Load TPI statistics
+        function loadTpiStatistics() {
+          const statsContainer = document.getElementById("tpi-statistics");
+          if (!statsContainer) return;
+
+          // Mock data for demonstration
+          const mockData = {
+            current_co: 8.2,
+            current_pm25: 28.5,
+            max_co: 12.8,
+            max_pm25: 45.2,
+            status: "Sedang",
+            trend: "stabil",
+          };
+
+          statsContainer.innerHTML = `
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+              <div class="bg-white rounded-xl shadow-sm p-4 text-center">
+                <div class="text-2xl font-bold text-teal-600">${mockData.current_co}</div>
+                <div class="text-sm text-gray-600">CO (ppm)</div>
+                <div class="text-xs text-gray-500">Current</div>
+              </div>
+              <div class="bg-white rounded-xl shadow-sm p-4 text-center">
+                <div class="text-2xl font-bold text-orange-600">${mockData.current_pm25}</div>
+                <div class="text-sm text-gray-600">PM2.5 (µg/m³)</div>
+                <div class="text-xs text-gray-500">Current</div>
+              </div>
+              <div class="bg-white rounded-xl shadow-sm p-4 text-center">
+                <div class="text-2xl font-bold text-red-600">${mockData.max_co}</div>
+                <div class="text-sm text-gray-600">Max CO Today</div>
+                <div class="text-xs text-gray-500">${mockData.max_co >= 9.5 ? "⚠️ High" : "✅ Normal"}</div>
+              </div>
+              <div class="bg-white rounded-xl shadow-sm p-4 text-center">
+                <div class="text-2xl font-bold text-purple-600">${mockData.max_pm25}</div>
+                <div class="text-sm text-gray-600">Max PM2.5 Today</div>
+                <div class="text-xs text-gray-500">${mockData.max_pm25 >= 35.5 ? "⚠️ High" : "✅ Normal"}</div>
+              </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm p-6">
+              <h3 class="text-lg font-semibold text-gray-800 mb-4">Current Traffic Pollution Status</h3>
+              <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                  <div class="w-4 h-4 rounded-full mr-3 bg-yellow-500"></div>
+                  <div>
+                    <span class="text-sm font-medium text-gray-700">${mockData.status}</span>
+                    <p class="text-xs text-gray-500">Based on CO: ${mockData.current_co}ppm, PM2.5: ${mockData.current_pm25}µg/m³</p>
+                  </div>
+                </div>
+                <div class="text-right">
+                  <span class="text-sm font-semibold ${mockData.trend === "meningkat" ? "text-red-600" : mockData.trend === "menurun" ? "text-green-600" : "text-gray-600"}">
+                    ${mockData.trend === "meningkat" ? "↗️ Meningkat" : mockData.trend === "menurun" ? "↘️ Menurun" : "➡️ Stabil"}
+                  </span>
+                  <p class="text-xs text-gray-500">24h trend</p>
+                </div>
+              </div>
+            </div>
+          `;
+        }
+
+        // Load health tips
+        function loadHealthTips() {
+          const tipsContainer = document.getElementById("health-tips");
+          if (!tipsContainer) return;
+
+          // Determine current status based on mock data
+          const currentCO = 8.2;
+          const currentPM25 = 28.5;
+
+          let currentStatus = trafficPollutionRecommendations[0];
+
+          if (currentCO >= 30.5 || currentPM25 >= 250.5) {
+            currentStatus = trafficPollutionRecommendations[5]; // Berbahaya
+          } else if (currentCO >= 15.5 || currentPM25 >= 150.5) {
+            currentStatus = trafficPollutionRecommendations[4]; // Sangat Tidak Sehat
+          } else if (currentCO >= 12.5 || currentPM25 >= 55.5) {
+            currentStatus = trafficPollutionRecommendations[3]; // Tidak Sehat
+          } else if (currentCO >= 9.5 || currentPM25 >= 35.5) {
+            currentStatus = trafficPollutionRecommendations[2]; // Tidak Sehat Sensitif
+          } else if (currentCO >= 4.5 || currentPM25 >= 12.1) {
+            currentStatus = trafficPollutionRecommendations[1]; // Sedang
+          }
+
+          tipsContainer.innerHTML = `
+            <div class="bg-gradient-to-r from-teal-500 to-teal-600 rounded-2xl shadow-lg p-6 text-white">
+              <div class="flex items-center mb-4">
+                <div class="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center mr-3">
+                  <span class="text-lg">💡</span>
+                </div>
+                <h3 class="text-xl font-bold">Tips Kesehatan Berdasarkan Polusi Lalu Lintas</h3>
+              </div>
+
+              <div class="mb-4">
+                <div class="text-sm opacity-90">Status Polusi Lalu Lintas Saat Ini</div>
+                <div class="text-2xl font-bold">${currentStatus.status}</div>
+                <div class="text-sm opacity-90 mt-1">
+                  CO: ${currentCO}ppm | PM2.5: ${currentPM25}µg/m³
+                </div>
+              </div>
+
+              <div class="space-y-3">
+                ${currentStatus.recommendations
+                  .slice(0, 3)
+                  .map(
+                    (tip) => `
+                  <div class="flex items-start bg-white/10 rounded-lg p-3">
+                    <span class="text-teal-200 mr-2 mt-1">•</span>
+                    <span class="text-sm">${tip}</span>
+                  </div>
+                `
+                  )
+                  .join("")}
+              </div>
+
+              <div class="mt-4 pt-4 border-t border-white/20">
+                <p class="text-sm opacity-90 text-center">
+                  Data polusi lalu lintas diperbarui: ${new Date().toLocaleString("id-ID")}
+                </p>
+              </div>
+            </div>
+          `;
+        }
+
+        // Initialize insights
+        function initializeInsights() {
+          console.log("Initializing Traffic Pollution Insights...");
+          loadDynamicRecommendations();
+          loadTpiStatistics();
+          loadHealthTips();
+          console.log("Traffic Pollution Insights initialized successfully");
+        }
+
+        // Initialize
+        initializeInsights();
+
+        // Add scroll animations
+        const observerOptions = {
+          threshold: 0.1,
+          rootMargin: "0px 0px -50px 0px",
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.style.opacity = "1";
+              entry.target.style.transform = "translateY(0)";
+            }
+          });
+        }, observerOptions);
+
+        document.querySelectorAll(".insight-card").forEach((card) => {
+          card.style.opacity = "0";
+          card.style.transform = "translateY(30px)";
+          card.style.transition = "all 0.6s ease-out";
+          observer.observe(card);
+        });
+      });
+    </script>
+    <!-- Health Helpline Modal -->
+    <div id="health-helpline-modal" class="modal-overlay" style="display: none">
+      <div class="modal-content w-11/12 md:w-4/5 lg:w-3/4 xl:w-2/3">
+        <div class="bg-gradient-to-r from-teal-600 to-teal-700 p-6 rounded-t-2xl text-white">
+          <div class="flex justify-between items-center">
+            <div>
+              <h2 class="text-2xl font-bold mb-2">🩺 Health Helpline Bali</h2>
+              <p class="text-teal-100">Kontak darurat dan layanan kesehatan di Bali</p>
+            </div>
+            <button id="close-modal" class="text-white hover:text-teal-200 text-2xl font-bold transition-all duration-300 hover:scale-110">✕</button>
+          </div>
+        </div>
+
+        <div class="p-6 bg-gray-50 max-h-96 overflow-y-auto">
+          <!-- Emergency Contacts -->
+          <div class="mb-8">
+            <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+              <span class="bg-red-500 text-white p-2 rounded-lg mr-3">🚨</span>
+              Darurat & Ambulans
+            </h3>
+            <div class="grid gap-4 md:grid-cols-2">
+              <div class="emergency-contact p-4 rounded-xl shadow-md">
+                <div class="flex justify-between items-start mb-2">
+                  <h4 class="font-bold text-lg">Panggilan Darurat Umum</h4>
+                  <span class="bg-white text-red-600 px-2 py-1 rounded text-sm font-bold">112</span>
+                </div>
+                <p class="text-white/90 text-sm mb-2">Provinsi Bali</p>
+                <div class="flex flex-wrap gap-2 mt-3">
+                  <span class="bg-white/20 px-2 py-1 rounded text-xs">Bali Buddies</span>
+                  <span class="bg-white/20 px-2 py-1 rounded text-xs">Trishnanda Care Centre</span>
+                </div>
+              </div>
+
+              <div class="emergency-contact p-4 rounded-xl shadow-md">
+                <div class="flex justify-between items-start mb-2">
+                  <h4 class="font-bold text-lg">Ambulans/Medis Umum</h4>
+                  <div class="flex gap-1">
+                    <span class="bg-white text-red-600 px-2 py-1 rounded text-sm font-bold">118</span>
+                    <span class="bg-white text-red-600 px-2 py-1 rounded text-sm font-bold">119</span>
+                  </div>
+                </div>
+                <p class="text-white/90 text-sm mb-2">Provinsi Bali</p>
+                <div class="flex flex-wrap gap-2 mt-3">
+                  <span class="bg-white/20 px-2 py-1 rounded text-xs">Bali.com</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Government & Major Hospitals -->
+          <div class="mb-8">
+            <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+              <span class="bg-blue-500 text-white p-2 rounded-lg mr-3">🏥</span>
+              Instansi Pemerintah & Rumah Sakit Utama
+            </h3>
+            <div class="grid gap-4">
+              <div class="contact-card bg-white p-4 rounded-xl shadow-sm">
+                <div class="flex justify-between items-start">
+                  <div>
+                    <h4 class="font-bold text-gray-800">Dinas Kesehatan Provinsi Bali</h4>
+                    <p class="text-gray-600 text-sm mt-1">diskes.baliprov.go.id</p>
+                  </div>
+                  <a href="tel:+62361222412" class="bg-teal-100 text-teal-700 px-3 py-1 rounded-lg font-bold hover:bg-teal-200 transition-colors"> (0361) 222 412 </a>
+                </div>
+              </div>
+
+              <div class="contact-card bg-white p-4 rounded-xl shadow-sm">
+                <div class="flex justify-between items-start">
+                  <div>
+                    <h4 class="font-bold text-gray-800">RSUD Wangaya (Denpasar)</h4>
+                    <p class="text-gray-600 text-sm mt-1">R.S.U.D Wangaya</p>
+                  </div>
+                  <div class="flex flex-col gap-1 items-end">
+                    <a href="tel:+62361222141" class="bg-teal-100 text-teal-700 px-3 py-1 rounded-lg font-bold hover:bg-teal-200 transition-colors text-sm"> +62 361 222 141 </a>
+                    <a href="tel:+62361222487" class="bg-teal-100 text-teal-700 px-3 py-1 rounded-lg font-bold hover:bg-teal-200 transition-colors text-sm"> +62 361 222 487 </a>
+                  </div>
+                </div>
+              </div>
+
+              <div class="contact-card bg-white p-4 rounded-xl shadow-sm">
+                <div class="flex justify-between items-start">
+                  <div>
+                    <h4 class="font-bold text-gray-800">BaliMéd Hospital (Denpasar) Pulmonologi</h4>
+                    <p class="text-gray-600 text-sm mt-1">balimedhospital.co.id</p>
+                  </div>
+                  <a href="tel:+628889484748" class="bg-teal-100 text-teal-700 px-3 py-1 rounded-lg font-bold hover:bg-teal-200 transition-colors"> +62 8889 484 748 </a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- International & 24/7 Hospitals -->
+          <div class="mb-8">
+            <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+              <span class="bg-green-500 text-white p-2 rounded-lg mr-3">🌏</span>
+              Rumah Sakit Internasional & 24 Jam
+            </h3>
+            <div class="grid gap-4 md:grid-cols-2">
+              <div class="contact-card bg-white p-4 rounded-xl shadow-sm">
+                <div class="flex justify-between items-start">
+                  <div>
+                    <h4 class="font-bold text-gray-800">BIMC Hospital Nusa Dua</h4>
+                    <p class="text-green-600 text-sm font-bold mt-1">24 Jam</p>
+                    <p class="text-gray-600 text-sm">BIMC Hospital Bali</p>
+                  </div>
+                  <a href="tel:+623613000911" class="bg-green-100 text-green-700 px-3 py-1 rounded-lg font-bold hover:bg-green-200 transition-colors"> +62 361 3000 911 </a>
+                </div>
+              </div>
+
+              <div class="contact-card bg-white p-4 rounded-xl shadow-sm">
+                <div class="flex justify-between items-start">
+                  <div>
+                    <h4 class="font-bold text-gray-800">Bali Royal Hospital (Denpasar)</h4>
+                    <p class="text-gray-600 text-sm mt-1">baliroyalhospital.co.id</p>
+                  </div>
+                  <a href="tel:+62361222588" class="bg-teal-100 text-teal-700 px-3 py-1 rounded-lg font-bold hover:bg-teal-200 transition-colors"> (+62 361) 222 588 </a>
+                </div>
+              </div>
+
+              <div class="contact-card bg-white p-4 rounded-xl shadow-sm">
+                <div class="flex justify-between items-start">
+                  <div>
+                    <h4 class="font-bold text-gray-800">SOS Medika Bali Clinic (Sanur)</h4>
+                    <p class="text-gray-600 text-sm mt-1">internationalsos.com</p>
+                  </div>
+                  <a href="tel:+623612014505" class="bg-teal-100 text-teal-700 px-3 py-1 rounded-lg font-bold hover:bg-teal-200 transition-colors"> +62 361 2014 505 </a>
+                </div>
+              </div>
+
+              <div class="contact-card bg-white p-4 rounded-xl shadow-sm">
+                <div class="flex justify-between items-start">
+                  <div>
+                    <h4 class="font-bold text-gray-800">Unicare Clinic Bali</h4>
+                    <p class="text-green-600 text-sm font-bold mt-1">Doctor on Call 24/7</p>
+                    <p class="text-gray-600 text-sm">Unicare Clinic, Bali</p>
+                  </div>
+                  <a href="tel:+6282298298911" class="bg-green-100 text-green-700 px-3 py-1 rounded-lg font-bold hover:bg-green-200 transition-colors"> +62 822 9829 8911 </a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Specialized Clinics -->
+          <div>
+            <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+              <span class="bg-purple-500 text-white p-2 rounded-lg mr-3">🫁</span>
+              Klinik Spesialis & Layanan Tambahan
+            </h3>
+            <div class="grid gap-4 md:grid-cols-2">
+              <div class="contact-card bg-white p-4 rounded-xl shadow-sm">
+                <div class="flex justify-between items-start">
+                  <div>
+                    <h4 class="font-bold text-gray-800">BPBD Provinsi Bali</h4>
+                    <p class="text-gray-600 text-sm mt-1">Pemantauan Udara/Kebencanaan</p>
+                  </div>
+                  <a href="tel:+6285792240799" class="bg-purple-100 text-purple-700 px-3 py-1 rounded-lg font-bold hover:bg-purple-200 transition-colors"> +62 857-9224-0799 </a>
+                </div>
+              </div>
+
+              <div class="contact-card bg-white p-4 rounded-xl shadow-sm">
+                <div class="flex justify-between items-start">
+                  <div>
+                    <h4 class="font-bold text-gray-800">BaliMéd Negara (Karangasem)</h4>
+                    <p class="text-gray-600 text-sm mt-1">Pulmonologi - balimedhospital.co.id</p>
+                  </div>
+                  <a href="tel:+623654501452" class="bg-teal-100 text-teal-700 px-3 py-1 rounded-lg font-bold hover:bg-teal-200 transition-colors"> +62 365 450 1452 </a>
+                </div>
+              </div>
+
+              <div class="contact-card bg-white p-4 rounded-xl shadow-sm">
+                <div class="flex justify-between items-start">
+                  <div>
+                    <h4 class="font-bold text-gray-800">BaliMéd Karangasem</h4>
+                    <p class="text-gray-600 text-sm mt-1">Spesialis Pernapasan</p>
+                  </div>
+                  <a href="tel:+623634301618" class="bg-teal-100 text-teal-700 px-3 py-1 rounded-lg font-bold hover:bg-teal-200 transition-colors"> +62 363 430 1618 </a>
+                </div>
+              </div>
+
+              <div class="contact-card bg-white p-4 rounded-xl shadow-sm">
+                <div class="flex justify-between items-start">
+                  <div>
+                    <h4 class="font-bold text-gray-800">Bali International Hospital</h4>
+                    <p class="text-green-600 text-sm font-bold mt-1">24/7 - bih.id</p>
+                  </div>
+                  <a href="tel:1500238" class="bg-green-100 text-green-700 px-3 py-1 rounded-lg font-bold hover:bg-green-200 transition-colors"> 1500 238 </a>
+                </div>
+              </div>
+
+              <div class="contact-card bg-white p-4 rounded-xl shadow-sm">
+                <div class="flex justify-between items-start">
+                  <div>
+                    <h4 class="font-bold text-gray-800">BIMC Ubud</h4>
+                    <p class="text-gray-600 text-sm mt-1">Klinik Medis Turis/Internasional</p>
+                  </div>
+                  <a href="tel:+623612091030" class="bg-teal-100 text-teal-700 px-3 py-1 rounded-lg font-bold hover:bg-teal-200 transition-colors"> +62 361 2091 030 </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-gray-100 p-4 rounded-b-2xl border-t border-gray-200">
+          <p class="text-center text-gray-600 text-sm">💡 <strong>Tips:</strong> Simpan kontak darurat di ponsel Anda. Untuk keadaan darurat, hubungi 112 terlebih dahulu.</p>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

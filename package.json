@@ -1,0 +1,25 @@
+{
+  "name": "bams-webapp",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "concurrently \"npm run proxy\" \"npm run dev\"",
+    "dev": "vite --host --port 5173",
+    "proxy": "python cors_proxy.py",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "autoprefixer": "^10.4.22",
+    "concurrently": "^8.0.0",
+    "vite": "^7.2.7"
+  },
+  "dependencies": {
+    "@tailwindcss/postcss": "^4.1.17",
+    "@vitejs/plugin-react": "^5.1.2",
+    "react": "^19.2.1",
+    "react-dom": "^19.2.1",
+    "tailwindcss": "^4.1.17"
+  }
+}

@@ -1,0 +1,1537 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BAMS - Dashboard</title>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="/apiConfig.js"></script>
+    <style>
+      /* Custom styles to match the design */
+      #map {
+        height: 100%;
+        width: 100%;
+        z-index: 0;
+      }
+      .bg-dark-teal {
+        background-color: #004d40;
+      }
+      .text-dark-teal {
+        color: #004d40;
+      }
+      .bg-teal-700 {
+        background-color: #00796b;
+      }
+      .hover\:bg-teal-900:hover {
+        background-color: #004d40;
+      }
+      .hover\:bg-teal-600:hover {
+        background-color: #00897b;
+      }
+      .ring-teal-500:focus {
+        --tw-ring-color: #009688;
+      }
+      /* Custom styles for DivIcon markers */
+      .leaflet-div-icon {
+        background: transparent;
+        border: none;
+      }
+      .aqi-marker {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        color: white;
+        font-weight: bold;
+        font-size: 12px;
+        width: 32px;
+        height: 32px;
+        border: 2px solid white;
+        box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+      }
+      /* Custom Popup Style */
+      .custom-popup .leaflet-popup-content-wrapper {
+        background: #fff;
+        border-radius: 16px;
+        padding: 0;
+        border: 2px solid #e2e8f0;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+      }
+      .custom-popup .leaflet-popup-content {
+        margin: 0;
+        padding: 0;
+        line-height: 1.4;
+        width: 500px !important;
+      }
+      .custom-popup .leaflet-popup-tip-container {
+        display: none;
+      }
+      .leaflet-popup-close-button {
+        display: none;
+      }
+      /* Custom close button style */
+      .popup-close-btn {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        width: 28px;
+        height: 28px;
+        background: rgba(0, 0, 0, 0.1);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 18px;
+        font-weight: bold;
+        color: #666;
+        transition: all 0.2s;
+        z-index: 1000;
+      }
+      .popup-close-btn:hover {
+        background: rgba(0, 0, 0, 0.2);
+        color: #333;
+        transform: scale(1.1);
+      }
+      /* Animation for cards */
+      @keyframes fadeInUp {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .animate-fade-in-up {
+        animation: fadeInUp 0.5s ease-out;
+      }
+      /* Loading animation */
+      .loading {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 3px solid rgba(255, 255, 255, 0.3);
+        border-radius: 50%;
+        border-top-color: #fff;
+        animation: spin 1s ease-in-out infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      /* Custom styles for AQI circles */
+      .aqi-circle {
+        stroke-width: 2;
+        fill-opacity: 0.1;
+        animation: pulse 2s infinite;
+      }
+      @keyframes pulse {
+        0% {
+          stroke-width: 2;
+          fill-opacity: 0.1;
+        }
+        50% {
+          stroke-width: 3;
+          fill-opacity: 0.15;
+        }
+        100% {
+          stroke-width: 2;
+          fill-opacity: 0.1;
+        }
+      }
+      /* Custom card styles */
+      .location-card {
+        transition: all 0.3s ease;
+        cursor: pointer;
+        border-left: 6px solid;
+      }
+      .location-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+      }
+      .highlighted-card {
+        border: 3px solid #00796b;
+        box-shadow: 0 0 20px rgba(0, 121, 107, 0.4);
+        transform: scale(1.02);
+      }
+      /* Horizontal legend styles */
+      .horizontal-legend {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-wrap: nowrap;
+        gap: 0;
+        background: white;
+        border-radius: 12px;
+        padding: 8px 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        border: 1px solid #e2e8f0;
+      }
+      .legend-item {
+        display: flex;
+        align-items: center;
+        padding: 4px 12px;
+        border-right: 1px solid #e2e8f0;
+      }
+      .legend-item:last-child {
+        border-right: none;
+      }
+      .legend-color {
+        width: 16px;
+        height: 16px;
+        border-radius: 4px;
+        margin-right: 8px;
+        border: 1px solid rgba(0, 0, 0, 0.1);
+      }
+      .legend-text {
+        font-size: 11px;
+        font-weight: 600;
+        color: #374151;
+        white-space: nowrap;
+      }
+      /* Health Helpline Modal Styles */
+      .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 1000;
+        animation: fadeIn 0.3s ease-out;
+      }
+      .modal-content {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) scale(0.9);
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+        max-width: 90%;
+        max-height: 90vh;
+        overflow-y: auto;
+        animation: modalSlideIn 0.4s ease-out forwards;
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+      @keyframes modalSlideIn {
+        from {
+          opacity: 0;
+          transform: translate(-50%, -50%) scale(0.8);
+        }
+        to {
+          opacity: 1;
+          transform: translate(-50%, -50%) scale(1);
+        }
+      }
+      .contact-card {
+        transition: all 0.3s ease;
+        border-left: 4px solid #00796b;
+      }
+      .contact-card:hover {
+        transform: translateX(5px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+      }
+      .emergency-contact {
+        background: linear-gradient(135deg, #dc2626, #ef4444);
+        color: white;
+        border-left: 4px solid #b91c1c;
+      }
+      .admin-bar {
+        background: #2c3e50;
+        color: white;
+        padding: 8px 20px;
+        display: flex;
+        justify-content: flex-end;
+        font-size: 14px;
+        align-items: center;
+        gap: 15px;
+      }
+      .admin-info {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+      }
+      .logout-btn {
+        background: #e74c3c;
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        border-radius: 3px;
+        cursor: pointer;
+      }
+      .error {
+        color: #e74c3c;
+        font-size: 14px;
+      }
+      .add-btn {
+        background: #3498db;
+        color: white;
+        border: none;
+        padding: 8px 15px;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      .edit-btn {
+        background: #f39c12;
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        border-radius: 3px;
+        cursor: pointer;
+      }
+      .delete-btn {
+        background: #e74c3c;
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        border-radius: 3px;
+        cursor: pointer;
+      }
+      .hidden {
+        display: none !important;
+      }
+    </style>
+  </head>
+  <body class="bg-gray-200 font-sans flex flex-col h-screen">
+    <!-- Admin Bar -->
+    <div id="adminBar" class="admin-bar hidden">
+      <div class="admin-info">
+        <span id="adminName">👤 Admin</span>
+      </div>
+    </div>
+
+    <!-- Header Utama (Full Width) -->
+    <header class="bg-white text-dark-teal p-4 flex items-center justify-between h-16 shadow-sm z-20 flex-shrink-0">
+      <div class="flex items-center">
+        <img src="logo-bams.png" alt="BAMS Logo" class="h-12 w-auto mr-3" />
+        <div class="sm:block">
+          <h1 class="text-xl font-bold">BAMS</h1>
+          <p class="text-sm opacity-80">Bali Air Monitoring System</p>
+        </div>
+      </div>
+      <div class="flex items-center space-x-2 sm:space-x-4">
+        <button id="health-helpline-btn" class="bg-teal-700 hover:bg-teal-600 text-white py-2 px-3 rounded-lg text-xs sm:text-sm flex items-center transition-all duration-300 hover:scale-105">
+          <svg class="w-4 h-4 sm:w-5 sm:h-5 mr-1 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          <span class="sm:inline">Health Helpline</span>
+        </button>
+        <div class="relative" id="adminSection">
+          <!-- Updated by JS -->
+        </div>
+      </div>
+    </header>
+
+    <!-- Health Helpline Modal -->
+    <div id="health-helpline-modal" class="modal-overlay" style="display: none">
+      <div class="modal-content w-11/12 md:w-4/5 lg:w-3/4 xl:w-2/3">
+        <div class="bg-gradient-to-r from-teal-600 to-teal-700 p-6 rounded-t-2xl text-white">
+          <div class="flex justify-between items-center">
+            <div>
+              <h2 class="text-2xl font-bold mb-2">🩺 Health Helpline Bali</h2>
+              <p class="text-teal-100">Kontak darurat dan layanan kesehatan di Bali</p>
+            </div>
+            <button id="close-modal" class="text-white hover:text-teal-200 text-2xl font-bold transition-all duration-300 hover:scale-110">✕</button>
+          </div>
+        </div>
+
+        <div class="p-6 bg-gray-50 max-h-96 overflow-y-auto">
+          <!-- Emergency Contacts -->
+          <div class="mb-8">
+            <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+              <span class="bg-red-500 text-white p-2 rounded-lg mr-3">🚨</span>
+              Darurat & Ambulans
+            </h3>
+            <div class="grid gap-4 md:grid-cols-2">
+              <div class="emergency-contact p-4 rounded-xl shadow-md">
+                <div class="flex justify-between items-start mb-2">
+                  <h4 class="font-bold text-lg">Panggilan Darurat Umum</h4>
+                  <span class="bg-white text-red-600 px-2 py-1 rounded text-sm font-bold">112</span>
+                </div>
+                <p class="text-white/90 text-sm mb-2">Provinsi Bali</p>
+                <div class="flex flex-wrap gap-2 mt-3">
+                  <span class="bg-white/20 px-2 py-1 rounded text-xs">Bali Buddies</span>
+                  <span class="bg-white/20 px-2 py-1 rounded text-xs">Trishnanda Care Centre</span>
+                </div>
+              </div>
+
+              <div class="emergency-contact p-4 rounded-xl shadow-md">
+                <div class="flex justify-between items-start mb-2">
+                  <h4 class="font-bold text-lg">Ambulans/Medis Umum</h4>
+                  <div class="flex gap-1">
+                    <span class="bg-white text-red-600 px-2 py-1 rounded text-sm font-bold">118</span>
+                    <span class="bg-white text-red-600 px-2 py-1 rounded text-sm font-bold">119</span>
+                  </div>
+                </div>
+                <p class="text-white/90 text-sm mb-2">Provinsi Bali</p>
+                <div class="flex flex-wrap gap-2 mt-3">
+                  <span class="bg-white/20 px-2 py-1 rounded text-xs">Bali.com</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Government & Major Hospitals -->
+          <div class="mb-8">
+            <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+              <span class="bg-blue-500 text-white p-2 rounded-lg mr-3">🏥</span>
+              Instansi Pemerintah & Rumah Sakit Utama
+            </h3>
+            <div class="grid gap-4">
+              <div class="contact-card bg-white p-4 rounded-xl shadow-sm">
+                <div class="flex justify-between items-start">
+                  <div>
+                    <h4 class="font-bold text-gray-800">Dinas Kesehatan Provinsi Bali</h4>
+                    <p class="text-gray-600 text-sm mt-1">diskes.baliprov.go.id</p>
+                  </div>
+                  <a href="tel:+62361222412" class="bg-teal-100 text-teal-700 px-3 py-1 rounded-lg font-bold hover:bg-teal-200 transition-colors"> (0361) 222 412 </a>
+                </div>
+              </div>
+
+              <div class="contact-card bg-white p-4 rounded-xl shadow-sm">
+                <div class="flex justify-between items-start">
+                  <div>
+                    <h4 class="font-bold text-gray-800">RSUD Wangaya (Denpasar)</h4>
+                    <p class="text-gray-600 text-sm mt-1">R.S.U.D Wangaya</p>
+                  </div>
+                  <div class="flex flex-col gap-1 items-end">
+                    <a href="tel:+62361222141" class="bg-teal-100 text-teal-700 px-3 py-1 rounded-lg font-bold hover:bg-teal-200 transition-colors text-sm"> +62 361 222 141 </a>
+                    <a href="tel:+62361222487" class="bg-teal-100 text-teal-700 px-3 py-1 rounded-lg font-bold hover:bg-teal-200 transition-colors text-sm"> +62 361 222 487 </a>
+                  </div>
+                </div>
+              </div>
+
+              <div class="contact-card bg-white p-4 rounded-xl shadow-sm">
+                <div class="flex justify-between items-start">
+                  <div>
+                    <h4 class="font-bold text-gray-800">BaliMéd Hospital (Denpasar) Pulmonologi</h4>
+                    <p class="text-gray-600 text-sm mt-1">balimedhospital.co.id</p>
+                  </div>
+                  <a href="tel:+628889484748" class="bg-teal-100 text-teal-700 px-3 py-1 rounded-lg font-bold hover:bg-teal-200 transition-colors"> +62 8889 484 748 </a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- International & 24/7 Hospitals -->
+          <div class="mb-8">
+            <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+              <span class="bg-green-500 text-white p-2 rounded-lg mr-3">🌏</span>
+              Rumah Sakit Internasional & 24 Jam
+            </h3>
+            <div class="grid gap-4 md:grid-cols-2">
+              <div class="contact-card bg-white p-4 rounded-xl shadow-sm">
+                <div class="flex justify-between items-start">
+                  <div>
+                    <h4 class="font-bold text-gray-800">BIMC Hospital Nusa Dua</h4>
+                    <p class="text-green-600 text-sm font-bold mt-1">24 Jam</p>
+                    <p class="text-gray-600 text-sm">BIMC Hospital Bali</p>
+                  </div>
+                  <a href="tel:+623613000911" class="bg-green-100 text-green-700 px-3 py-1 rounded-lg font-bold hover:bg-green-200 transition-colors"> +62 361 3000 911 </a>
+                </div>
+              </div>
+
+              <div class="contact-card bg-white p-4 rounded-xl shadow-sm">
+                <div class="flex justify-between items-start">
+                  <div>
+                    <h4 class="font-bold text-gray-800">Bali Royal Hospital (Denpasar)</h4>
+                    <p class="text-gray-600 text-sm mt-1">baliroyalhospital.co.id</p>
+                  </div>
+                  <a href="tel:+62361222588" class="bg-teal-100 text-teal-700 px-3 py-1 rounded-lg font-bold hover:bg-teal-200 transition-colors"> (+62 361) 222 588 </a>
+                </div>
+              </div>
+
+              <div class="contact-card bg-white p-4 rounded-xl shadow-sm">
+                <div class="flex justify-between items-start">
+                  <div>
+                    <h4 class="font-bold text-gray-800">SOS Medika Bali Clinic (Sanur)</h4>
+                    <p class="text-gray-600 text-sm mt-1">internationalsos.com</p>
+                  </div>
+                  <a href="tel:+623612014505" class="bg-teal-100 text-teal-700 px-3 py-1 rounded-lg font-bold hover:bg-teal-200 transition-colors"> +62 361 2014 505 </a>
+                </div>
+              </div>
+
+              <div class="contact-card bg-white p-4 rounded-xl shadow-sm">
+                <div class="flex justify-between items-start">
+                  <div>
+                    <h4 class="font-bold text-gray-800">Unicare Clinic Bali</h4>
+                    <p class="text-green-600 text-sm font-bold mt-1">Doctor on Call 24/7</p>
+                    <p class="text-gray-600 text-sm">Unicare Clinic, Bali</p>
+                  </div>
+                  <a href="tel:+6282298298911" class="bg-green-100 text-green-700 px-3 py-1 rounded-lg font-bold hover:bg-green-200 transition-colors"> +62 822 9829 8911 </a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Specialized Clinics -->
+          <div>
+            <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+              <span class="bg-purple-500 text-white p-2 rounded-lg mr-3">🫁</span>
+              Klinik Spesialis & Layanan Tambahan
+            </h3>
+            <div class="grid gap-4 md:grid-cols-2">
+              <div class="contact-card bg-white p-4 rounded-xl shadow-sm">
+                <div class="flex justify-between items-start">
+                  <div>
+                    <h4 class="font-bold text-gray-800">BPBD Provinsi Bali</h4>
+                    <p class="text-gray-600 text-sm mt-1">Pemantauan Udara/Kebencanaan</p>
+                  </div>
+                  <a href="tel:+6285792240799" class="bg-purple-100 text-purple-700 px-3 py-1 rounded-lg font-bold hover:bg-purple-200 transition-colors"> +62 857-9224-0799 </a>
+                </div>
+              </div>
+
+              <div class="contact-card bg-white p-4 rounded-xl shadow-sm">
+                <div class="flex justify-between items-start">
+                  <div>
+                    <h4 class="font-bold text-gray-800">BaliMéd Negara (Karangasem)</h4>
+                    <p class="text-gray-600 text-sm mt-1">Pulmonologi - balimedhospital.co.id</p>
+                  </div>
+                  <a href="tel:+623654501452" class="bg-teal-100 text-teal-700 px-3 py-1 rounded-lg font-bold hover:bg-teal-200 transition-colors"> +62 365 450 1452 </a>
+                </div>
+              </div>
+
+              <div class="contact-card bg-white p-4 rounded-xl shadow-sm">
+                <div class="flex justify-between items-start">
+                  <div>
+                    <h4 class="font-bold text-gray-800">BaliMéd Karangasem</h4>
+                    <p class="text-gray-600 text-sm mt-1">Spesialis Pernapasan</p>
+                  </div>
+                  <a href="tel:+623634301618" class="bg-teal-100 text-teal-700 px-3 py-1 rounded-lg font-bold hover:bg-teal-200 transition-colors"> +62 363 430 1618 </a>
+                </div>
+              </div>
+
+              <div class="contact-card bg-white p-4 rounded-xl shadow-sm">
+                <div class="flex justify-between items-start">
+                  <div>
+                    <h4 class="font-bold text-gray-800">Bali International Hospital</h4>
+                    <p class="text-green-600 text-sm font-bold mt-1">24/7 - bih.id</p>
+                  </div>
+                  <a href="tel:1500238" class="bg-green-100 text-green-700 px-3 py-1 rounded-lg font-bold hover:bg-green-200 transition-colors"> 1500 238 </a>
+                </div>
+              </div>
+
+              <div class="contact-card bg-white p-4 rounded-xl shadow-sm">
+                <div class="flex justify-between items-start">
+                  <div>
+                    <h4 class="font-bold text-gray-800">BIMC Ubud</h4>
+                    <p class="text-gray-600 text-sm mt-1">Klinik Medis Turis/Internasional</p>
+                  </div>
+                  <a href="tel:+623612091030" class="bg-teal-100 text-teal-700 px-3 py-1 rounded-lg font-bold hover:bg-teal-200 transition-colors"> +62 361 2091 030 </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-gray-100 p-4 rounded-b-2xl border-t border-gray-200">
+          <p class="text-center text-gray-600 text-sm">💡 <strong>Tips:</strong> Simpan kontak darurat di ponsel Anda. Untuk keadaan darurat, hubungi 112 terlebih dahulu.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex flex-1 overflow-hidden">
+      <!-- Sidebar Ikon Navigasi -->
+      <aside class="w-24 bg-dark-teal flex flex-col items-center py-4 space-y-8 z-10 flex-shrink-0 shadow-lg">
+        <!-- Dashboard Button -->
+        <a href="./index.html" id="navDashboard" class="flex flex-col items-center p-4 text-white bg-teal-700 rounded-lg w-full transition-all duration-300 hover:scale-105" style="text-decoration: none">
+          <svg class="w-8 h-8 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
+            ></path>
+          </svg>
+          <span class="text-xs">Dashboard</span>
+        </a>
+        <!-- History Button -->
+        <a href="./history.html" class="flex flex-col items-center p-4 text-white rounded-lg hover:bg-teal-900 w-full transition-all duration-300 hover:scale-105" style="text-decoration: none">
+          <svg class="w-8 h-8 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          <span class="text-xs">History</span>
+        </a>
+        <!-- Insights Button -->
+        <a href="./insights.html" class="flex flex-col items-center p-4 text-white rounded-lg hover:bg-teal-900 w-full transition-all duration-300 hover:scale-105" style="text-decoration: none">
+          <svg class="w-8 h-8 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          <span class="text-xs">Insights</span>
+        </a>
+      </aside>
+
+      <!-- Panel Detail Lokasi -->
+      <aside id="location-panel" class="w-96 bg-white flex flex-col border-r border-gray-200 z-10 flex-shrink-0 shadow-lg">
+        <div class="p-4 h-16 border-b flex items-center bg-white">
+          <input type="text" id="search-input" placeholder="Search Location..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white text-gray-800 placeholder-gray-500" />
+        </div>
+        <div id="location-list" class="flex-grow overflow-y-auto p-4 space-y-4 bg-gray-50">
+          <!-- Kartu Lokasi akan diisi oleh JavaScript -->
+          <p class="text-gray-500 text-center p-4">Loading data...</p>
+        </div>
+      </aside>
+
+      <!-- Konten Utama (Header & Peta) -->
+      <div class="flex-1 flex flex-col">
+        <header class="bg-dark-teal text-white p-4 flex flex-col sm:flex-row items-center justify-between border-b border-gray-700 z-10">
+          <div class="flex items-center space-x-6 mb-2 sm:mb-0">
+            <h2 class="text-xl font-bold text-white">BAMS Home Overview</h2>
+          </div>
+          <div class="flex items-center space-x-4 text-white text-sm">
+            <div class="flex items-center space-x-2 bg-teal-600 px-3 py-1 rounded-lg">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+              </svg>
+              <span id="current-date" class="font-bold text-lg">--/--/----</span>
+            </div>
+            <div class="flex items-center space-x-2 bg-teal-600 px-3 py-1 rounded-lg">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+              <span id="current-time" class="font-bold text-lg">--.--</span>
+            </div>
+          </div>
+        </header>
+
+        <main class="flex-1 relative">
+          <div id="map"></div>
+          <!-- Horizontal Map Legend -->
+          <div id="map-legend" class="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-10">
+            <div class="horizontal-legend">
+              <!-- Legend items will be generated by JS -->
+            </div>
+          </div>
+          <!-- Circle Radius Control -->
+          <div class="absolute top-4 right-4 z-10 bg-white bg-opacity-95 p-4 rounded-xl shadow-lg border border-gray-200">
+            <div class="flex items-center space-x-3">
+              <span class="text-sm font-bold text-gray-700">Radius Monitoring:</span>
+              <select id="radius-control" class="text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white">
+                <option value="100">100 meter</option>
+                <option value="150" selected>150 meter</option>
+                <option value="200">200 meter</option>
+              </select>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <!-- Login Modal -->
+    <div id="loginModal" class="modal-overlay hidden">
+      <div class="modal-content">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">Admin Login</h2>
+        <form id="loginForm" class="space-y-4">
+          <div>
+            <input type="text" id="username" placeholder="Username" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500" required />
+          </div>
+          <div>
+            <input type="password" id="password" placeholder="Password" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500" required />
+          </div>
+          <p id="loginError" class="error hidden text-red-500 text-sm"></p>
+          <button type="submit" class="w-full bg-teal-600 hover:bg-teal-700 text-white py-2 px-4 rounded-md transition duration-300">Login</button>
+        </form>
+        <button id="closeLoginBtn" class="w-full mt-3 bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 px-4 rounded-md transition duration-300">Cancel</button>
+      </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- Main Script -->
+    <script>
+      let allLocationsData = [];
+      let map;
+      let markers = {};
+      let circles = {};
+      let currentRadius = 150;
+      let currentlyHighlightedCard = null;
+      let isAdmin = false;
+      let adminToken = "";
+      let adminUsername = "";
+      const isFiniteNumber = (v) => Number.isFinite(Number(v));
+
+      const hasMonitoringData = (row) => {
+        if (!row) return false;
+        // sesuaikan field sesuai dashboard kamu:
+        // kalau dashboard pakai AQI, MQ7, GP2Y1010 seperti history
+        return isFiniteNumber(row.AQI) || isFiniteNumber(row.MQ7) || isFiniteNumber(row.GP2Y1010) || isFiniteNumber(row.CO) || isFiniteNumber(row.PM25);
+      };
+
+      // Ganti aqiCategories dengan traffic pollution categories
+      const trafficPollutionCategories = [
+        { range: [0, 50], status: "Baik", color: "#22C55E", bgColor: "bg-green-500", popupColor: "bg-green-500", popupTextColor: "text-white", coRange: "0.0 – 4.4 ppm", pm25Range: "0 – 12.0 µg/m³" },
+        { range: [51, 100], status: "Sedang", color: "#FACC15", bgColor: "bg-yellow-400", popupColor: "bg-yellow-400", popupTextColor: "text-yellow-900", coRange: "4.5 – 9.4 ppm", pm25Range: "12.1 – 35.4 µg/m³" },
+        { range: [101, 150], status: "Tidak Sehat Bagi Kelompok Sensitif", color: "#FB923C", bgColor: "bg-orange-500", popupColor: "bg-orange-500", popupTextColor: "text-white", coRange: "9.5 – 12.4 ppm", pm25Range: "35.5 – 55.4 µg/m³" },
+        { range: [151, 200], status: "Tidak Sehat", color: "#EF4444", bgColor: "bg-red-500", popupColor: "bg-red-500", popupTextColor: "text-white", coRange: "12.5 – 15.4 ppm", pm25Range: "55.5 – 150.4 µg/m³" },
+        { range: [201, 300], status: "Sangat Tidak Sehat", color: "#A855F7", bgColor: "bg-purple-500", popupColor: "bg-purple-500", popupTextColor: "text-white", coRange: "15.5 – 30.4 ppm", pm25Range: "150.5 – 250.4 µg/m³" },
+        { range: [301, 500], status: "Berbahaya", color: "#9F1239", bgColor: "bg-rose-700", popupColor: "bg-rose-700", popupTextColor: "text-white", coRange: "≥ 30.5 ppm", pm25Range: "≥ 250.5 µg/m³" },
+      ];
+
+      // Fungsi untuk menghitung indeks polusi lalu lintas dari CO
+      const getTrafficPollutionIndex = (coValue, pm25Value) => {
+        const co = parseFloat(coValue) || 0;
+        const pm25 = parseFloat(pm25Value) || 0;
+
+        // Ambil status dari CO (prioritas utama untuk lalu lintas)
+        let status, color, bgColor, range;
+
+        // Parameter CO (ppm)
+        if (co >= 0.0 && co <= 4.4) {
+          status = "Baik";
+          color = "#22C55E";
+          bgColor = "bg-green-500";
+          range = [0, 50];
+        } else if (co >= 4.5 && co <= 9.4) {
+          status = "Sedang";
+          color = "#FACC15";
+          bgColor = "bg-yellow-400";
+          range = [51, 100];
+        } else if (co >= 9.5 && co <= 12.4) {
+          status = "Tidak Sehat Bagi Kelompok Sensitif";
+          color = "#FB923C";
+          bgColor = "bg-orange-500";
+          range = [101, 150];
+        } else if (co >= 12.5 && co <= 15.4) {
+          status = "Tidak Sehat";
+          color = "#EF4444";
+          bgColor = "bg-red-500";
+          range = [151, 200];
+        } else if (co >= 15.5 && co <= 30.4) {
+          status = "Sangat Tidak Sehat";
+          color = "#A855F7";
+          bgColor = "bg-purple-500";
+          range = [201, 300];
+        } else {
+          status = "Berbahaya";
+          color = "#9F1239";
+          bgColor = "bg-rose-700";
+          range = [301, 500];
+        }
+
+        // Konversi nilai CO ke skala 0-500 (Indeks Polusi)
+        let index;
+        if (co <= 4.4) {
+          index = Math.round((co / 4.4) * 50);
+        } else if (co <= 9.4) {
+          index = Math.round(50 + ((co - 4.4) / (9.4 - 4.4)) * 50);
+        } else if (co <= 12.4) {
+          index = Math.round(100 + ((co - 9.4) / (12.4 - 9.4)) * 50);
+        } else if (co <= 15.4) {
+          index = Math.round(150 + ((co - 12.4) / (15.4 - 12.4)) * 50);
+        } else if (co <= 30.4) {
+          index = Math.round(200 + ((co - 15.4) / (30.4 - 15.4)) * 100);
+        } else {
+          index = Math.round(300 + Math.min(200, ((co - 30.4) / 10) * 100));
+        }
+
+        return {
+          status,
+          color,
+          bgColor,
+          popupColor: bgColor,
+          popupTextColor: "text-white",
+          range,
+          index,
+          coValue: co,
+          pm25Value: pm25,
+        };
+      };
+
+      // Fungsi untuk mendapatkan informasi PM2.5
+      const getPm25Status = (pm25Value) => {
+        const pm25 = parseFloat(pm25Value) || 0;
+
+        if (pm25 >= 0 && pm25 <= 12.0) {
+          return "Baik";
+        } else if (pm25 >= 12.1 && pm25 <= 35.4) {
+          return "Sedang";
+        } else if (pm25 >= 35.5 && pm25 <= 55.4) {
+          return "Tidak Sehat Bagi Kelompok Sensitif";
+        } else if (pm25 >= 55.5 && pm25 <= 150.4) {
+          return "Tidak Sehat";
+        } else if (pm25 >= 150.5 && pm25 <= 250.4) {
+          return "Sangat Tidak Sehat";
+        } else {
+          return "Berbahaya";
+        }
+      };
+
+      // Fungsi untuk mendapatkan kategori dari indeks (untuk backward compatibility)
+      const getCategoryFromIndex = (index) => {
+        return trafficPollutionCategories.find((cat) => index >= cat.range[0] && index <= cat.range[1]) || trafficPollutionCategories[5];
+      };
+
+      // Authentication System
+      const checkAuth = () => {
+        const token = localStorage.getItem("adminToken");
+        const adminData = localStorage.getItem("adminData");
+
+        if (token && adminData) {
+          try {
+            const parsedAdmin = JSON.parse(adminData);
+            isAdmin = true;
+            adminToken = token;
+            adminUsername = parsedAdmin.username;
+            updateUIForAdmin();
+            return true;
+          } catch (error) {
+            console.error("Error parsing admin data:", error);
+            logout();
+          }
+        } else {
+          isAdmin = false;
+          updateUIForUser();
+        }
+        return false;
+      };
+
+      // Update UI for Admin
+      const updateUIForAdmin = () => {
+        const adminBar = document.getElementById("adminBar");
+        const adminSection = document.getElementById("adminSection");
+        const adminName = document.getElementById("adminName");
+
+        if (adminBar) adminBar.classList.remove("hidden");
+        if (adminName && adminUsername) {
+          adminName.textContent = `👤 ${adminUsername}`;
+        }
+        if (adminSection) {
+          adminSection.innerHTML = `
+          <div class="flex items-center space-x-2 text-dark-teal">
+              <span class="w-8 h-8 bg-teal-200 text-dark-teal rounded-full flex items-center justify-center font-bold">
+                ${(adminUsername || "A").charAt(0).toUpperCase()}
+              </span>
+              <span class="hidden md:inline">${adminUsername || "Admin"}</span>
+              <button id="logoutBtn" class="bg-red-500 hover:bg-red-600 text-white py-1 px-3 rounded-lg text-xs flex items-center transition-all duration-300">
+                Logout
+              </button>
+            </div>
+          `;
+
+          // Add logout event listener
+          setTimeout(() => {
+            const logoutBtn = document.getElementById("logoutBtn");
+            if (logoutBtn) {
+              logoutBtn.addEventListener("click", logout);
+            }
+          }, 100);
+        }
+      };
+
+      // Update UI for Regular User
+      const updateUIForUser = () => {
+        const adminBar = document.getElementById("adminBar");
+        const adminSection = document.getElementById("adminSection");
+
+        if (adminBar) adminBar.classList.add("hidden");
+        if (adminSection) {
+          adminSection.innerHTML = `
+            <button id="loginBtn" class="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg text-sm flex items-center transition-all duration-300 hover:scale-105">
+              Admin Login
+            </button>
+          `;
+
+          // Add login event listener
+          setTimeout(() => {
+            const loginBtn = document.getElementById("loginBtn");
+            if (loginBtn) {
+              loginBtn.addEventListener("click", () => {
+                window.location.href = "login.html";
+              });
+            }
+          }, 100);
+        }
+      };
+
+      // Logout function
+      const logout = () => {
+        localStorage.removeItem("adminToken");
+        localStorage.removeItem("adminData");
+        isAdmin = false;
+        adminToken = "";
+        adminUsername = "";
+        checkAuth();
+
+        // Refresh the page to update UI
+        window.location.reload();
+      };
+
+      // Login Modal Functions
+      const showLoginModal = () => {
+        document.getElementById("loginModal").classList.remove("hidden");
+      };
+
+      const closeLoginModal = () => {
+        document.getElementById("loginModal").classList.add("hidden");
+      };
+
+      // Handle Login
+      const handleLogin = async (e) => {
+        e.preventDefault();
+        const username = document.getElementById("username").value;
+        const password = document.getElementById("password").value;
+        const errorElem = document.getElementById("loginError");
+
+        try {
+          const response = await API_CONFIG.fetchData(
+            "LOGIN_API",
+            {},
+            {
+              method: "POST",
+              body: { username, password },
+            }
+          );
+
+          if (response.message === "Login berhasil" && response.token && response.username) {
+            // Login successful
+            localStorage.setItem("adminToken", response.token);
+            localStorage.setItem(
+              "adminData",
+              JSON.stringify({
+                username: response.username,
+              })
+            );
+
+            closeLoginModal();
+            checkAuth();
+
+            // Show success message
+            alert("Login successful! Welcome " + response.username);
+          } else {
+            // Login failed
+            errorElem.textContent = response.message || "Username atau password salah";
+            errorElem.classList.remove("hidden");
+          }
+        } catch (error) {
+          errorElem.textContent = "Login error: " + error.message;
+          errorElem.classList.remove("hidden");
+        }
+      };
+
+      // Initialize authentication when page loads
+      document.addEventListener("DOMContentLoaded", function () {
+        checkAuth();
+
+        // Add event listeners for login modal
+        document.getElementById("loginForm").addEventListener("submit", handleLogin);
+        document.getElementById("closeLoginBtn").addEventListener("click", closeLoginModal);
+
+        // Existing dashboard functionality
+        const healthHelplineBtn = document.getElementById("health-helpline-btn");
+        const healthHelplineModal = document.getElementById("health-helpline-modal");
+        const closeModalBtn = document.getElementById("close-modal");
+
+        healthHelplineBtn.addEventListener("click", () => {
+          healthHelplineModal.style.display = "block";
+          document.body.style.overflow = "hidden";
+        });
+
+        closeModalBtn.addEventListener("click", () => {
+          healthHelplineModal.style.display = "none";
+          document.body.style.overflow = "auto";
+        });
+
+        healthHelplineModal.addEventListener("click", (e) => {
+          if (e.target === healthHelplineModal) {
+            healthHelplineModal.style.display = "none";
+            document.body.style.overflow = "auto";
+          }
+        });
+
+        document.addEventListener("keydown", (e) => {
+          if (e.key === "Escape" && healthHelplineModal.style.display === "block") {
+            healthHelplineModal.style.display = "none";
+            document.body.style.overflow = "auto";
+          }
+        });
+
+        const dashboardNav = document.getElementById("navDashboard");
+        const locationPanel = document.getElementById("location-panel");
+
+        if (dashboardNav && locationPanel) {
+          dashboardNav.addEventListener("click", (e) => {
+            e.preventDefault(); // tetap di halaman ini, jangan reload
+
+            // toggle panel
+            locationPanel.classList.toggle("hidden");
+
+            // ⚠️ Beri sedikit delay biar layout flex selesai update dulu
+            setTimeout(() => {
+              if (typeof map !== "undefined" && map) {
+                map.invalidateSize(); // 👉 suruh Leaflet hitung ulang ukuran map
+              }
+            }, 300);
+          });
+        }
+
+        const searchInput = document.getElementById("search-input");
+        searchInput.addEventListener("input", (e) => {
+          const searchTerm = e.target.value.toLowerCase();
+          const filteredLocations = allLocationsData.filter((loc) => loc.name.toLowerCase().includes(searchTerm));
+          renderLocationList(filteredLocations);
+        });
+
+        const radiusControl = document.getElementById("radius-control");
+        radiusControl.addEventListener("change", (e) => {
+          currentRadius = parseInt(e.target.value);
+          renderMarkersAndCircles(allLocationsData);
+        });
+
+        document.getElementById("location-list").addEventListener("click", (e) => {
+          const card = e.target.closest(".location-card");
+          if (!card) return;
+
+          const locationName = card.getAttribute("data-name");
+          const locationData = allLocationsData.find((loc) => loc.name === locationName);
+          const marker = markers[locationName];
+
+          if (locationData && marker) {
+            if (currentlyHighlightedCard) {
+              currentlyHighlightedCard.classList.remove("highlighted-card");
+            }
+
+            card.classList.add("highlighted-card");
+            currentlyHighlightedCard = card;
+
+            map.closePopup();
+
+            map.flyTo([locationData.lat, locationData.lon], 16, {
+              duration: 1.5,
+            });
+
+            setTimeout(() => {
+              marker.openPopup();
+            }, 1200);
+          }
+        });
+
+        const updateDateTime = () => {
+          const now = new Date();
+          const dateOptions = { year: "numeric", month: "2-digit", day: "2-digit" };
+          const timeOptions = { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Makassar" };
+          document.getElementById("current-date").textContent = now.toLocaleDateString("id-ID", dateOptions);
+          document.getElementById("current-time").textContent = now.toLocaleTimeString("id-ID", timeOptions);
+        };
+        updateDateTime();
+        setInterval(updateDateTime, 1000);
+
+        // Initialize map and data
+        map = L.map("map").setView([-8.67, 115.22], 12);
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          maxZoom: 19,
+          attribution: "© OpenStreetMap",
+        }).addTo(map);
+
+        renderLegend();
+        fetchLocationData();
+        setInterval(fetchLocationData, 120000);
+      });
+
+      // ===== Helpers untuk response API AWS (body/Items/array) + timezone WITA =====
+      const getISODateInTZ = (tz = "Asia/Makassar") => {
+        // hasil: YYYY-MM-DD (aman untuk WITA, tidak pakai UTC)
+        return new Date().toLocaleDateString("en-CA", { timeZone: tz });
+      };
+
+      const extractArray = (payload) => {
+        if (!payload) return [];
+
+        // API Gateway kadang: { body: "..." }
+        if (payload.body) {
+          try {
+            const b = typeof payload.body === "string" ? JSON.parse(payload.body) : payload.body;
+            return extractArray(b);
+          } catch (e) {
+            return [];
+          }
+        }
+
+        // DynamoDB style: { Items: [...] }
+        if (Array.isArray(payload.Items)) return payload.Items;
+
+        // kadang: { items: [...] }
+        if (Array.isArray(payload.items)) return payload.items;
+
+        // langsung array
+        if (Array.isArray(payload)) return payload;
+
+        return [];
+      };
+
+      const unwrap = (v) => {
+        if (v && typeof v === "object") {
+          if ("S" in v) return v.S;
+          if ("N" in v) return v.N;
+          if ("BOOL" in v) return v.BOOL;
+        }
+        return v;
+      };
+
+      const toNum = (v) => {
+        v = unwrap(v);
+        if (v === null || v === undefined || v === "") return null;
+        const s = String(v).trim().replace(/^'+/, "").replace(/,/g, "");
+        const n = Number(s);
+        return Number.isFinite(n) ? n : null;
+      };
+
+      const toStr = (v) => {
+        v = unwrap(v);
+        return v === null || v === undefined ? "" : String(v);
+      };
+
+      const pad2 = (x) =>
+        String(x ?? "")
+          .trim()
+          .padStart(2, "0");
+
+      // Normalisasi item API jadi format yang dipakai dashboard kamu (DeviceID/latitude/longitude/MQ7/GP2Y1010/Timestamp)
+      const normalizeDashboardItem = (raw) => {
+        const deviceID_Tanggal = toStr(raw["DeviceID#Tanggal"] ?? raw.DeviceID_Tanggal ?? raw.deviceID_Tanggal);
+        const deviceId = deviceID_Tanggal ? deviceID_Tanggal.split("#")[0] : toStr(raw.DeviceID ?? raw.deviceId ?? raw.device ?? "UNKNOWN");
+        const datePart = deviceID_Tanggal ? deviceID_Tanggal.split("#")[1] : "";
+
+        const jam = pad2(toStr(raw["Jam"] ?? raw.Jam));
+        const ts = toStr(raw.Timestamp ?? raw.timestamp) || (datePart && jam ? `${datePart} ${jam}:00` : "");
+
+        const lat = toNum(raw.latitude ?? raw.lat);
+        const lon = toNum(raw.longitude ?? raw.lon);
+
+        // backend kamu kadang pakai CO dan PM2.5, bukan MQ7/GP2Y1010
+        const co = toNum(raw.CO ?? raw.MQ7);
+        const pm25 = toNum(raw["PM2.5"] ?? raw.GP2Y1010 ?? raw.PM25);
+
+        return {
+          DeviceID: deviceId,
+          latitude: lat,
+          longitude: lon,
+          MQ7: co, // biarkan null kalau tidak ada
+          GP2Y1010: pm25, // biarkan null kalau tidak ada
+          Timestamp: ts || new Date().toISOString(),
+        };
+      };
+
+      async function fetchLocationData() {
+        console.log("Fetching data from AWS API...");
+
+        try {
+          // ✅ pakai WITA (Asia/Makassar), bukan UTC
+          const today = getISODateInTZ("Asia/Makassar");
+
+          let allData = [];
+
+          for (const device of API_CONFIG.DEVICES) {
+            try {
+              const res = await API_CONFIG.fetchData("DATA_API", {
+                device: device,
+                date: today,
+                period: "hour", // optional
+              });
+
+              const items = extractArray(res);
+              const normalized = items
+                .map(normalizeDashboardItem)
+                // ✅ skip data yang tidak punya koordinat valid (biar cluster gak NaN)
+                .filter((it) => it.DeviceID && Number.isFinite(it.latitude) && Number.isFinite(it.longitude));
+
+              allData.push(...normalized);
+
+              console.log(`✅ ${device}: raw=${items.length}, usable=${normalized.length}`);
+            } catch (deviceError) {
+              console.warn(`⚠️ Skipping ${device}:`, deviceError.message);
+            }
+          }
+          if (allData.length > 0) {
+            const clusters = clusterDataByDeviceAndRadius(allData, 100);
+            const processedData = processClusteredData(clusters);
+
+            const latestLocations = getLatestLocationsByDevice(processedData);
+            allLocationsData = latestLocations;
+
+            renderMarkersAndCircles(allLocationsData);
+            renderLocationList(allLocationsData);
+
+            console.log(`✅ Total usable points: ${allData.length}`);
+          } else {
+            console.log("📦 No data received from AWS");
+            allLocationsData = [];
+            renderMarkersAndCircles([]); // bersihkan marker & circle
+            renderLocationList([]); // nanti akan kita ubah agar tulis "Tidak ada monitoring"
+          }
+        } catch (error) {
+          console.error("❌ Error fetching data:", error);
+          allLocationsData = [];
+          renderMarkersAndCircles([]);
+          renderLocationList([]);
+        }
+      }
+
+      // Helper function untuk dummy data
+      function useDummyData() {
+        console.log("Using dummy data...");
+        const dummyData = [
+          {
+            DeviceID: "RSU1",
+            latitude: -8.721,
+            longitude: 115.171,
+            AQI: 85,
+            MQ7: "2.5",
+            GP2Y1010: "25.5",
+            Timestamp: new Date().toISOString(),
+          },
+          {
+            DeviceID: "RSU2",
+            latitude: -8.795,
+            longitude: 115.173,
+            AQI: 83,
+            MQ7: "2.1",
+            GP2Y1010: "24.0",
+            Timestamp: new Date().toISOString(),
+          },
+          {
+            DeviceID: "RSU3",
+            latitude: -8.798,
+            longitude: 115.169,
+            AQI: 65,
+            MQ7: "1.5",
+            GP2Y1010: "15.5",
+            Timestamp: new Date().toISOString(),
+          },
+        ];
+
+        const clusters = clusterDataByDeviceAndRadius(dummyData, 100);
+        const processedData = processClusteredData(clusters);
+
+        const latestLocations = getLatestLocationsByDevice(processedData);
+        allLocationsData = latestLocations;
+
+        renderMarkersAndCircles(allLocationsData);
+        renderLocationList(allLocationsData);
+      }
+
+      const renderMarkersAndCircles = (locations) => {
+        Object.values(markers).forEach((marker) => map.removeLayer(marker));
+        Object.values(circles).forEach((circle) => map.removeLayer(circle));
+        markers = {};
+        circles = {};
+
+        locations.forEach((loc) => {
+          const pollutionInfo = getTrafficPollutionIndex(loc.co_value.replace(" ppm", ""), loc.pm25_value.replace(" µg/m³", ""));
+          const pm25Status = getPm25Status(loc.pm25_value.replace(" µg/m³", ""));
+
+          const circle = L.circle([loc.lat, loc.lon], {
+            color: pollutionInfo.color,
+            fillColor: pollutionInfo.color,
+            fillOpacity: 0.1,
+            weight: 3,
+            radius: currentRadius,
+          }).addTo(map);
+          circles[loc.name] = circle;
+
+          const markerIcon = L.divIcon({
+            html: `<div class="aqi-marker" style="background-color: ${pollutionInfo.color}; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">${pollutionInfo.index}</div>`,
+            className: "leaflet-div-icon",
+            iconSize: [36, 36],
+            iconAnchor: [18, 18],
+          });
+
+          const marker = L.marker([loc.lat, loc.lon], { icon: markerIcon }).addTo(map);
+
+          const popupId = `popup-${loc.name.replace(/\s+/g, "-")}`;
+
+          const popupContent = `
+      <div class="custom-popup-content" id="${popupId}">
+        <div class="bg-gradient-to-r ${pollutionInfo.bgColor} p-6 rounded-t-2xl text-white">
+          <div class="flex justify-between items-start mb-4">
+            <div>
+              <h2 class="text-2xl font-bold mb-1">${loc.name}</h2>
+              <p class="text-white/90 text-sm font-medium">AQI (PM2.5 - CO)</p>
+              <p class="text-white/80 text-xs">Update: ${new Date(loc.timestamp).toLocaleString("id-ID")}</p>
+            </div>
+            <span class="popup-close-btn" onclick="closePopup('${popupId}')">×</span>
+          </div>
+          
+          <div class="grid grid-cols-2 gap-4">
+            <div class="bg-white/20 p-4 rounded-xl text-center">
+              <div class="text-4xl font-black mb-1">${pollutionInfo.index}</div>
+              <div class="text-sm font-semibold">AQI (PM2.5 - CO)</div>
+              <div class="text-xs opacity-90 mt-1">${pollutionInfo.status}</div>
+            </div>
+            <div class="bg-white/20 p-4 rounded-xl">
+              <div class="text-lg font-black mb-1">Berdasarkan CO</div>
+              <div class="text-sm font-medium">Status: ${pollutionInfo.status}</div>
+              <div class="text-xs opacity-90 mt-1">${loc.co_value} ppm</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="p-6 bg-white">
+          <div class="mb-6">
+            <h3 class="text-lg font-black text-gray-800 mb-3">📊 POLUSI LALU LINTAS (PM2.5 - CO)</h3>
+            <div class="grid grid-cols-2 gap-4">
+              <div class="border border-gray-200 rounded-xl p-4">
+                <div class="text-2xl font-black text-gray-800 mb-1">${loc.co_value}</div>
+                <div class="text-sm font-semibold text-gray-600">Karbon Monoksida (CO)</div>
+                <div class="text-xs text-gray-500 mt-1">Status: ${pollutionInfo.status}</div>
+              </div>
+              <div class="border border-gray-200 rounded-xl p-4">
+                <div class="text-2xl font-black text-gray-800 mb-1">${loc.pm25_value}</div>
+                <div class="text-sm font-semibold text-gray-600">Partikulat PM2.5</div>
+                <div class="text-xs text-gray-500 mt-1">Status: ${pm25Status}</div>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <h3 class="text-lg font-black text-gray-800 mb-2">INFORMASI LOKASI</h3>
+            <div class="text-sm text-gray-600 font-medium bg-gray-50 p-4 rounded-xl">
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <div class="font-semibold text-gray-500 mb-1">Latitude</div>
+                  <div class="font-black text-gray-800 text-lg">${loc.lat.toFixed(6)}</div>
+                </div>
+                <div>
+                  <div class="font-semibold text-gray-500 mb-1">Longitude</div>
+                  <div class="font-black text-gray-800 text-lg">${loc.lon.toFixed(6)}</div>
+                </div>
+              </div>
+              <div class="mt-3 pt-3 border-t border-gray-200">
+                <div class="font-semibold text-gray-500 mb-1">Polutan Penentu</div>
+                <div class="font-black text-gray-800 text-lg">Karbon Monoksida (CO)</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+          marker.bindPopup(popupContent, {
+            className: "custom-popup",
+          });
+
+          markers[loc.name] = marker;
+        });
+      };
+
+      const renderLocationList = (locations) => {
+        const locationList = document.getElementById("location-list");
+        locationList.innerHTML = "";
+        if (locations.length === 0) {
+          locationList.innerHTML = `
+    <div class="bg-white rounded-xl p-6 text-center shadow-sm border">
+      <div class="text-gray-700 font-bold mb-1">Tidak Data Monitoring Kualitas Udara</div>
+      <div class="text-gray-500 text-sm">Data Dari Sistem Belum Tersedia Untuk Hari Ini.</div>
+    </div>
+  `;
+          return;
+        }
+
+        const sortedLocations = locations.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+        sortedLocations.forEach((loc) => {
+          const pollutionInfo = getTrafficPollutionIndex(loc.co_value.replace(" ppm", ""), loc.pm25_value.replace(" µg/m³", ""));
+          const card = document.createElement("div");
+          card.className = `location-card p-4 rounded-xl shadow-md cursor-pointer text-white ${pollutionInfo.bgColor} animate-fade-in-up`;
+          card.style.borderLeftColor = pollutionInfo.color;
+          card.setAttribute("data-name", loc.name);
+
+          card.innerHTML = `
+      <div class="flex justify-between items-start mb-3">
+        <div>
+          <h3 class="text-lg font-black mb-1">${loc.name}</h3>
+          <p class="text-white/90 text-sm font-medium">Indeks Polusi Lalu Lintas</p>
+          <p class="text-white/80 text-xs">Update: ${new Date(loc.timestamp).toLocaleTimeString("id-ID")}</p>
+        </div>
+        <div class="text-right">
+          <div class="text-3xl font-black">${pollutionInfo.index}</div>
+          <div class="text-xs font-semibold opacity-90">AQI (PM2.5 - CO)</div>
+        </div>
+      </div>
+      
+      <div class="mb-3">
+        <div class="text-base font-black mb-1">${pollutionInfo.status}</div>
+        <div class="flex justify-between text-sm font-medium opacity-90">
+          <span>Berdasarkan CO</span>
+          <span class="font-black">${loc.co_value}</span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2 text-xs">
+        <div class="bg-white/20 p-2 rounded-lg text-center">
+          <div class="font-black">${loc.co_value}</div>
+          <div class="font-semibold opacity-90">CO</div>
+          <div class="text-xs opacity-80">${pollutionInfo.status}</div>
+        </div>
+        <div class="bg-white/20 p-2 rounded-lg text-center">
+          <div class="font-black">${loc.pm25_value}</div>
+          <div class="font-semibold opacity-90">PM2.5</div>
+          <div class="text-xs opacity-80">${getPm25Status(loc.pm25_value.replace(" µg/m³", ""))}</div>
+        </div>
+      </div>
+
+      <div class="mt-3 pt-3 border-t border-white/30 text-xs font-medium opacity-80 text-center">
+        Klik untuk lihat detail di peta
+      </div>
+    `;
+          locationList.appendChild(card);
+        });
+      };
+
+      const renderLegend = () => {
+        const legendContainer = document.querySelector("#map-legend .horizontal-legend");
+        legendContainer.innerHTML = "";
+        trafficPollutionCategories.forEach((cat) => {
+          const legendItem = `
+            <div class="legend-item" title="CO: ${cat.coRange}, PM2.5: ${cat.pm25Range}">
+              <div class="legend-color" style="background-color: ${cat.color};"></div>
+              <span class="legend-text">${cat.status}</span>
+            </div>
+          `;
+          legendContainer.innerHTML += legendItem;
+        });
+      };
+
+      function clusterDataByDeviceAndRadius(data, radiusMeters = 100) {
+        const clusters = {};
+
+        const sortedData = [...data].sort((a, b) => {
+          const timeA = new Date(a.Timestamp || new Date());
+          const timeB = new Date(b.Timestamp || new Date());
+          return timeB - timeA;
+        });
+
+        sortedData.forEach((item) => {
+          const deviceId = item.DeviceID || "unknown";
+          const lat = item.latitude;
+          const lon = item.longitude;
+
+          if (!clusters[deviceId]) {
+            clusters[deviceId] = [];
+          }
+
+          let addedToExistingCluster = false;
+
+          for (let cluster of clusters[deviceId]) {
+            const distance = calculateDistance(cluster.centerLat, cluster.centerLon, lat, lon);
+
+            if (distance <= radiusMeters) {
+              cluster.points.push(item);
+              cluster.centerLat = cluster.points.reduce((sum, p) => sum + p.latitude, 0) / cluster.points.length;
+              cluster.centerLon = cluster.points.reduce((sum, p) => sum + p.longitude, 0) / cluster.points.length;
+              addedToExistingCluster = true;
+              break;
+            }
+          }
+
+          if (!addedToExistingCluster) {
+            clusters[deviceId].push({
+              deviceId: deviceId,
+              points: [item],
+              centerLat: lat,
+              centerLon: lon,
+            });
+          }
+        });
+
+        return clusters;
+      }
+
+      function processClusteredData(clusters) {
+        const processedData = [];
+
+        Object.values(clusters).forEach((deviceClusters) => {
+          deviceClusters.forEach((cluster) => {
+            const sortedPoints = cluster.points.sort((a, b) => {
+              const timeA = new Date(a.Timestamp || new Date());
+              const timeB = new Date(b.Timestamp || new Date());
+              return timeB - timeA;
+            });
+
+            const latestPoint = sortedPoints[0];
+            const coValue = Number(latestPoint.MQ7) || 0;
+            const pm25Value = Number(latestPoint.GP2Y1010) || 0;
+            const pollutionInfo = getTrafficPollutionIndex(coValue, pm25Value);
+
+            processedData.push({
+              name: latestPoint.DeviceID || "Unknown Device",
+              lat: cluster.centerLat,
+              lon: cluster.centerLon,
+              aqi: pollutionInfo.index,
+              index: pollutionInfo.index,
+              polutan_utama: "CO",
+              polutan_value: coValue,
+              co_value: `${coValue.toFixed(1)} ppm`,
+              pm25_value: `${pm25Value.toFixed(1)} µg/m³`,
+              timestamp: latestPoint.Timestamp || new Date().toISOString(),
+              allPoints: cluster.points,
+              status: pollutionInfo.status,
+              color: pollutionInfo.color,
+              bgColor: pollutionInfo.bgColor,
+            });
+          });
+        });
+
+        return processedData;
+      }
+
+      function getLatestLocationsByDevice(locations) {
+        const latestByDevice = {};
+
+        locations.forEach((loc) => {
+          const key = loc.name || loc.DeviceID || "unknown";
+
+          if (!latestByDevice[key] || new Date(loc.timestamp) > new Date(latestByDevice[key].timestamp)) {
+            latestByDevice[key] = loc;
+          }
+        });
+
+        return Object.values(latestByDevice);
+      }
+
+      function calculateDistance(lat1, lon1, lat2, lon2) {
+        const R = 6371000;
+        const dLat = ((lat2 - lat1) * Math.PI) / 180;
+        const dLon = ((lon2 - lon1) * Math.PI) / 180;
+        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c;
+      }
+
+      function getMainPollutant(coValue, pm25Value) {
+        const co = parseFloat(coValue) || 0;
+        const pm25 = parseFloat(pm25Value) || 0;
+
+        if (co > pm25) {
+          return "CO";
+        } else if (pm25 > co) {
+          return "PM2.5";
+        } else {
+          return "CO & PM2.5";
+        }
+      }
+
+      // Global function untuk close popup
+      function closePopup(popupId) {
+        const marker = Object.values(markers).find((m) => {
+          const popup = m.getPopup();
+          return popup && popup._content && popup._content.includes(popupId);
+        });
+        if (marker) {
+          marker.closePopup();
+        }
+      }
+    </script>
+  </body>
+</html>

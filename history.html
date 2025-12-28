@@ -1,0 +1,2313 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BAMS - History</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/luxon@3.3.0/build/global/luxon.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1/dist/chartjs-adapter-luxon.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="/apiConfig.js"></script>
+    <style>
+      .bg-dark-teal {
+        background-color: #004d40;
+      }
+      .text-dark-teal {
+        color: #004d40;
+      }
+      .bg-teal-700 {
+        background-color: #00796b;
+      }
+      .hover\:bg-teal-900:hover {
+        background-color: #004d40;
+      }
+      .aqi-indicator {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        display: inline-block;
+      }
+      .loading {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 3px solid rgba(255, 255, 255, 0.3);
+        border-radius: 50%;
+        border-top-color: #fff;
+        animation: spin 1s ease-in-out infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      .custom-scrollbar::-webkit-scrollbar {
+        width: 6px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 10px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #c1c1c1;
+        border-radius: 10px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: #a8a8a8;
+      }
+      .rsu-card {
+        transition: all 0.3s ease;
+      }
+      .rsu-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+      }
+      .status-badge {
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+      }
+      /* Animation for cards */
+      @keyframes fadeInUp {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .animate-fade-in-up {
+        animation: fadeInUp 0.5s ease-out;
+      }
+      /* Custom calendar styles */
+      .flatpickr-calendar {
+        border-radius: 12px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        border: 1px solid #e2e8f0;
+      }
+      .flatpickr-day.selected {
+        background: #00796b;
+        border-color: #00796b;
+      }
+      .flatpickr-day.today {
+        border-color: #00796b;
+      }
+      /* Chart container styles */
+      .chart-container {
+        position: relative;
+        height: 300px;
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      }
+      /* Download button styles */
+      .download-btn {
+        transition: all 0.3s ease;
+      }
+      .download-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0, 121, 107, 0.3);
+      }
+      .admin-bar {
+        background: #2c3e50;
+        color: white;
+        padding: 8px 20px;
+        display: flex;
+        justify-content: flex-end;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+      }
+      .logout-btn {
+        background: #e74c3c;
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        border-radius: 3px;
+        cursor: pointer;
+      }
+      .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 50;
+      }
+      .modal-content {
+        background: white;
+        padding: 30px;
+        border-radius: 8px;
+        width: 400px;
+        max-width: 90%;
+      }
+      .error {
+        color: #e74c3c;
+        font-size: 14px;
+      }
+      .add-btn {
+        background: #3498db;
+        color: white;
+        border: none;
+        padding: 8px 15px;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      .edit-btn {
+        background: #f39c12;
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        border-radius: 3px;
+        cursor: pointer;
+        margin-right: 5px;
+      }
+      .delete-btn {
+        background: #e74c3c;
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        border-radius: 3px;
+        cursor: pointer;
+      }
+      .hidden {
+        display: none !important;
+      }
+      /* Health Helpline Modal Styles */
+      #health-helpline-modal {
+        display: none; /* default sembunyi */
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 1000;
+        animation: fadeIn 0.3s ease-out;
+      }
+      #health-helpline-modal .modal-content {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) scale(0.9);
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+        max-width: 90%;
+        max-height: 90vh;
+        overflow-y: auto;
+        animation: modalSlideIn 0.4s ease-out forwards;
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+      @keyframes modalSlideIn {
+        from {
+          opacity: 0;
+          transform: translate(-50%, -50%) scale(0.8);
+        }
+        to {
+          opacity: 1;
+          transform: translate(-50%, -50%) scale(1);
+        }
+      }
+      .contact-card {
+        transition: all 0.3s ease;
+        border-left: 4px solid #00796b;
+      }
+      .contact-card:hover {
+        transform: translateX(5px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+      }
+      .emergency-contact {
+        background: linear-gradient(135deg, #dc2626, #ef4444);
+        color: white;
+        border-left: 4px solid #b91c1c;
+      }
+      /* Notification Styles */
+      #global-notification {
+        animation: slideInRight 0.3s ease-out;
+      }
+      @keyframes slideInRight {
+        from {
+          transform: translateX(100%);
+          opacity: 0;
+        }
+        to {
+          transform: translateX(0);
+          opacity: 1;
+        }
+      }
+    </style>
+  </head>
+  <body class="bg-gray-100 font-sans flex flex-col h-screen">
+    <!-- Admin Bar -->
+    <div id="adminBar" class="admin-bar hidden">
+      <div class="admin-info">
+        <span id="adminName">👤 Admin</span>
+      </div>
+    </div>
+
+    <header class="bg-white text-dark-teal p-4 flex items-center justify-between h-16 shadow-sm z-20 flex-shrink-0">
+      <div class="flex items-center">
+        <img src="logo-bams.png" alt="BAMS Logo" class="h-12 w-auto mr-3" />
+        <div class="sm:block">
+          <h1 class="text-xl font-bold">BAMS</h1>
+          <p class="text-sm opacity-80">Bali Air Monitoring System</p>
+        </div>
+      </div>
+      <div class="flex items-center space-x-2 sm:space-x-4">
+        <button id="health-helpline-btn" class="bg-teal-700 hover:bg-teal-600 text-white py-2 px-3 rounded-lg text-xs sm:text-sm flex items-center transition-all duration-300 hover:scale-105">
+          <svg class="w-4 h-4 sm:w-5 sm:h-5 mr-1 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          <span class="sm:inline">Health Helpline</span>
+        </button>
+        <div class="relative" id="adminSection">
+          <!-- Updated by JS -->
+        </div>
+      </div>
+    </header>
+
+    <div class="flex flex-1 overflow-hidden">
+      <aside class="w-24 bg-dark-teal flex flex-col items-center py-4 space-y-8 z-10 flex-shrink-0 shadow-lg">
+        <a href="./index.html" class="flex flex-col items-center p-4 text-white rounded-lg hover:bg-teal-900 w-full transition-all duration-300 hover:scale-105" style="text-decoration: none">
+          <svg class="w-8 h-8 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
+            ></path>
+          </svg>
+          <span class="text-xs">Dashboard</span>
+        </a>
+        <a href="./history.html" class="flex flex-col items-center p-4 text-white bg-teal-700 rounded-lg w-full transition-all duration-300 hover:scale-105" style="text-decoration: none">
+          <svg class="w-8 h-8 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          <span class="text-xs">History</span>
+        </a>
+        <a href="./insights.html" class="flex flex-col items-center p-4 text-white rounded-lg hover:bg-teal-900 w-full transition-all duration-300 hover:scale-105" style="text-decoration: none">
+          <svg class="w-8 h-8 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          <span class="text-xs">Insights</span>
+        </a>
+      </aside>
+      <main class="flex-1 p-6 overflow-y-auto custom-scrollbar">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-2xl font-bold text-gray-800">History Data Management</h2>
+          <div class="flex items-center space-x-4">
+            <div class="text-sm text-gray-600">Last updated: <span id="lastUpdatedTime">--:--</span></div>
+            <button id="refreshAllBtn" class="bg-teal-700 hover:bg-teal-600 text-white py-2 px-4 rounded-lg text-sm flex items-center transition-all duration-300 hover:scale-105">
+              <span id="refreshAllText">Refresh All</span>
+              <span id="refreshAllIcon" class="ml-2"></span>
+            </button>
+          </div>
+        </div>
+
+        <div id="addNewSection" class="flex justify-end mb-6 hidden">
+          <button id="addBtn" class="add-btn">+ Add New Record</button>
+        </div>
+
+        <!-- Filter bar: search lokasi + period + kalender -->
+        <div class="bg-white p-4 rounded-lg shadow-sm flex flex-wrap items-center justify-between mb-6 gap-4">
+          <!-- Search lokasi RSU -->
+          <div class="flex items-center gap-4 flex-wrap">
+            <input id="locationSearch" type="text" placeholder="Search RSU Location" class="border border-gray-300 rounded-md px-3 py-2 text-sm w-56 focus:ring-teal-500 focus:border-teal-500" />
+
+            <!-- Tetap ada tapi disembunyikan supaya JS nggak error -->
+            <input id="detailSearch" type="text" class="hidden" />
+            <input id="measureSearch" type="text" class="hidden" />
+          </div>
+
+          <!-- Range picker (2 kalender) -->
+          <div class="flex items-center gap-3 flex-wrap">
+            <div class="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 shadow-sm">
+              <span class="text-xs text-gray-600">Dari</span>
+              <input id="startDateInput" type="text" class="bg-transparent outline-none w-28 text-sm text-gray-800 cursor-pointer" placeholder="Start" readonly />
+            </div>
+
+            <div class="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 shadow-sm">
+              <span class="text-xs text-gray-600">Sampai</span>
+              <input id="endDateInput" type="text" class="bg-transparent outline-none w-28 text-sm text-gray-800 cursor-pointer" placeholder="End" readonly />
+            </div>
+
+            <span id="autoPeriodBadge" class="px-3 py-1 rounded-full text-xs font-semibold bg-teal-100 text-teal-700"> Auto: - </span>
+
+            <div id="rangeInfo" class="text-xs text-gray-500">Pilih rentang tanggal (maksimal 30 hari)</div>
+          </div>
+        </div>
+
+        <div id="rsuContainer" class="space-y-6">
+          <div class="flex justify-center items-center py-12">
+            <div class="text-center">
+              <div class="loading mx-auto mb-4"></div>
+              <p class="text-gray-500">Loading real data from AWS API...</p>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- Login Modal -->
+    <div id="loginModal" class="modal-overlay hidden">
+      <div class="modal-content">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">Admin Login</h2>
+        <form id="loginForm" class="space-y-4">
+          <div>
+            <input type="text" id="username" placeholder="Username" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500" required />
+          </div>
+          <div>
+            <input type="password" id="password" placeholder="Password" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500" required />
+          </div>
+          <p id="loginError" class="error hidden text-red-500 text-sm"></p>
+          <button type="submit" class="w-full bg-teal-600 hover:bg-teal-700 text-white py-2 px-4 rounded-md transition duration-300">Login</button>
+        </form>
+        <button id="closeLoginBtn" class="w-full mt-3 bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 px-4 rounded-md transition duration-300">Cancel</button>
+      </div>
+    </div>
+
+    <!-- Add Modal -->
+    <div id="addModal" class="modal-overlay hidden">
+      <div class="modal-content">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">Add New Record</h2>
+        <form id="addForm" class="space-y-4">
+          <input type="text" id="addDeviceID_Tanggal" placeholder="RSU2#2025-10-03" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500" required />
+          <input type="text" id="addTimestamp" placeholder="2025-10-03 20:20" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500" required />
+          <input type="number" id="addAQI" placeholder="AQI" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500" required />
+          <input type="number" id="addLatitude" placeholder="Latitude" step="any" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500" required />
+          <input type="number" id="addLongitude" placeholder="Longitude" step="any" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500" required />
+          <input type="number" id="addMQ7" placeholder="CO (MQ7)" step="any" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500" required />
+          <input type="number" id="addGP2Y1010" placeholder="PM2.5 (GP2Y1010)" step="any" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500" required />
+          <p id="addError" class="error hidden text-red-500 text-sm"></p>
+          <button type="submit" class="w-full bg-teal-600 hover:bg-teal-700 text-white py-2 px-4 rounded-md transition duration-300">Add Record</button>
+        </form>
+        <button id="closeAddBtn" class="w-full mt-3 bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 px-4 rounded-md transition duration-300">Cancel</button>
+      </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div id="editModal" class="modal-overlay hidden">
+      <div class="modal-content">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">Edit Record</h2>
+        <form id="editForm" class="space-y-4">
+          <input type="hidden" id="editDeviceID_Tanggal" />
+          <input type="hidden" id="editTimestamp" />
+          <input type="hidden" id="editJam" />
+          <!-- ✅ baru -->
+          <input type="number" id="editAQI" placeholder="AQI" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500" required />
+          <input type="number" id="editLatitude" placeholder="Latitude" step="any" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500" />
+          <input type="number" id="editLongitude" placeholder="Longitude" step="any" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500" />
+          <input type="number" id="editMQ7" placeholder="CO (MQ7)" step="any" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500" required />
+          <input type="number" id="editGP2Y1010" placeholder="PM2.5 (GP2Y1010)" step="any" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500" required />
+          <p id="editError" class="error hidden text-red-500 text-sm"></p>
+          <button type="submit" class="w-full bg-teal-600 hover:bg-teal-700 text-white py-2 px-4 rounded-md transition duration-300">Update Record</button>
+        </form>
+        <button id="closeEditBtn" class="w-full mt-3 bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 px-4 rounded-md transition duration-300">Cancel</button>
+      </div>
+    </div>
+
+    <!-- Health Helpline Modal -->
+    <div id="health-helpline-modal" class="modal-overlay" style="display: none">
+      <div class="modal-content w-11/12 md:w-4/5 lg:w-3/4 xl:w-2/3">
+        <div class="bg-gradient-to-r from-teal-600 to-teal-700 p-6 rounded-t-2xl text-white">
+          <div class="flex justify-between items-center">
+            <div>
+              <h2 class="text-2xl font-bold mb-2">🩺 Health Helpline Bali</h2>
+              <p class="text-teal-100">Kontak darurat dan layanan kesehatan di Bali</p>
+            </div>
+            <button id="close-modal" class="text-white hover:text-teal-200 text-2xl font-bold transition-all duration-300 hover:scale-110">✕</button>
+          </div>
+        </div>
+
+        <div class="p-6 bg-gray-50 max-h-96 overflow-y-auto">
+          <!-- Emergency Contacts -->
+          <div class="mb-8">
+            <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+              <span class="bg-red-500 text-white p-2 rounded-lg mr-3">🚨</span>
+              Darurat & Ambulans
+            </h3>
+            <div class="grid gap-4 md:grid-cols-2">
+              <div class="emergency-contact p-4 rounded-xl shadow-md">
+                <div class="flex justify-between items-start mb-2">
+                  <h4 class="font-bold text-lg">Panggilan Darurat Umum</h4>
+                  <span class="bg-white text-red-600 px-2 py-1 rounded text-sm font-bold">112</span>
+                </div>
+                <p class="text-white/90 text-sm mb-2">Provinsi Bali</p>
+                <div class="flex flex-wrap gap-2 mt-3">
+                  <span class="bg-white/20 px-2 py-1 rounded text-xs">Bali Buddies</span>
+                  <span class="bg-white/20 px-2 py-1 rounded text-xs">Trishnanda Care Centre</span>
+                </div>
+              </div>
+
+              <div class="emergency-contact p-4 rounded-xl shadow-md">
+                <div class="flex justify-between items-start mb-2">
+                  <h4 class="font-bold text-lg">Ambulans/Medis Umum</h4>
+                  <div class="flex gap-1">
+                    <span class="bg-white text-red-600 px-2 py-1 rounded text-sm font-bold">118</span>
+                    <span class="bg-white text-red-600 px-2 py-1 rounded text-sm font-bold">119</span>
+                  </div>
+                </div>
+                <p class="text-white/90 text-sm mb-2">Provinsi Bali</p>
+                <div class="flex flex-wrap gap-2 mt-3">
+                  <span class="bg-white/20 px-2 py-1 rounded text-xs">Bali.com</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Government & Major Hospitals -->
+          <div class="mb-8">
+            <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+              <span class="bg-blue-500 text-white p-2 rounded-lg mr-3">🏥</span>
+              Instansi Pemerintah & Rumah Sakit Utama
+            </h3>
+            <div class="grid gap-4">
+              <div class="contact-card bg-white p-4 rounded-xl shadow-sm">
+                <div class="flex justify-between items-start">
+                  <div>
+                    <h4 class="font-bold text-gray-800">Dinas Kesehatan Provinsi Bali</h4>
+                    <p class="text-gray-600 text-sm mt-1">diskes.baliprov.go.id</p>
+                  </div>
+                  <a href="tel:+62361222412" class="bg-teal-100 text-teal-700 px-3 py-1 rounded-lg font-bold hover:bg-teal-200 transition-colors"> (0361) 222 412 </a>
+                </div>
+              </div>
+
+              <div class="contact-card bg-white p-4 rounded-xl shadow-sm">
+                <div class="flex justify-between items-start">
+                  <div>
+                    <h4 class="font-bold text-gray-800">RSUD Wangaya (Denpasar)</h4>
+                    <p class="text-gray-600 text-sm mt-1">R.S.U.D Wangaya</p>
+                  </div>
+                  <div class="flex flex-col gap-1 items-end">
+                    <a href="tel:+62361222141" class="bg-teal-100 text-teal-700 px-3 py-1 rounded-lg font-bold hover:bg-teal-200 transition-colors text-sm"> +62 361 222 141 </a>
+                    <a href="tel:+62361222487" class="bg-teal-100 text-teal-700 px-3 py-1 rounded-lg font-bold hover:bg-teal-200 transition-colors text-sm"> +62 361 222 487 </a>
+                  </div>
+                </div>
+              </div>
+
+              <div class="contact-card bg-white p-4 rounded-xl shadow-sm">
+                <div class="flex justify-between items-start">
+                  <div>
+                    <h4 class="font-bold text-gray-800">BaliMéd Hospital (Denpasar) Pulmonologi</h4>
+                    <p class="text-gray-600 text-sm mt-1">balimedhospital.co.id</p>
+                  </div>
+                  <a href="tel:+628889484748" class="bg-teal-100 text-teal-700 px-3 py-1 rounded-lg font-bold hover:bg-teal-200 transition-colors"> +62 8889 484 748 </a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- International & 24/7 Hospitals -->
+          <div class="mb-8">
+            <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+              <span class="bg-green-500 text-white p-2 rounded-lg mr-3">🌏</span>
+              Rumah Sakit Internasional & 24 Jam
+            </h3>
+            <div class="grid gap-4 md:grid-cols-2">
+              <div class="contact-card bg-white p-4 rounded-xl shadow-sm">
+                <div class="flex justify-between items-start">
+                  <div>
+                    <h4 class="font-bold text-gray-800">BIMC Hospital Nusa Dua</h4>
+                    <p class="text-green-600 text-sm font-bold mt-1">24 Jam</p>
+                    <p class="text-gray-600 text-sm">BIMC Hospital Bali</p>
+                  </div>
+                  <a href="tel:+623613000911" class="bg-green-100 text-green-700 px-3 py-1 rounded-lg font-bold hover:bg-green-200 transition-colors"> +62 361 3000 911 </a>
+                </div>
+              </div>
+
+              <div class="contact-card bg-white p-4 rounded-xl shadow-sm">
+                <div class="flex justify-between items-start">
+                  <div>
+                    <h4 class="font-bold text-gray-800">Bali Royal Hospital (Denpasar)</h4>
+                    <p class="text-gray-600 text-sm mt-1">baliroyalhospital.co.id</p>
+                  </div>
+                  <a href="tel:+62361222588" class="bg-teal-100 text-teal-700 px-3 py-1 rounded-lg font-bold hover:bg-teal-200 transition-colors"> (+62 361) 222 588 </a>
+                </div>
+              </div>
+
+              <div class="contact-card bg-white p-4 rounded-xl shadow-sm">
+                <div class="flex justify-between items-start">
+                  <div>
+                    <h4 class="font-bold text-gray-800">SOS Medika Bali Clinic (Sanur)</h4>
+                    <p class="text-gray-600 text-sm mt-1">internationalsos.com</p>
+                  </div>
+                  <a href="tel:+623612014505" class="bg-teal-100 text-teal-700 px-3 py-1 rounded-lg font-bold hover:bg-teal-200 transition-colors"> +62 361 2014 505 </a>
+                </div>
+              </div>
+
+              <div class="contact-card bg-white p-4 rounded-xl shadow-sm">
+                <div class="flex justify-between items-start">
+                  <div>
+                    <h4 class="font-bold text-gray-800">Unicare Clinic Bali</h4>
+                    <p class="text-green-600 text-sm font-bold mt-1">Doctor on Call 24/7</p>
+                    <p class="text-gray-600 text-sm">Unicare Clinic, Bali</p>
+                  </div>
+                  <a href="tel:+6282298298911" class="bg-green-100 text-green-700 px-3 py-1 rounded-lg font-bold hover:bg-green-200 transition-colors"> +62 822 9829 8911 </a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Specialized Clinics -->
+          <div>
+            <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+              <span class="bg-purple-500 text-white p-2 rounded-lg mr-3">🫁</span>
+              Klinik Spesialis & Layanan Tambahan
+            </h3>
+            <div class="grid gap-4 md:grid-cols-2">
+              <div class="contact-card bg-white p-4 rounded-xl shadow-sm">
+                <div class="flex justify-between items-start">
+                  <div>
+                    <h4 class="font-bold text-gray-800">BPBD Provinsi Bali</h4>
+                    <p class="text-gray-600 text-sm mt-1">Pemantauan Udara/Kebencanaan</p>
+                  </div>
+                  <a href="tel:+6285792240799" class="bg-purple-100 text-purple-700 px-3 py-1 rounded-lg font-bold hover:bg-purple-200 transition-colors"> +62 857-9224-0799 </a>
+                </div>
+              </div>
+
+              <div class="contact-card bg-white p-4 rounded-xl shadow-sm">
+                <div class="flex justify-between items-start">
+                  <div>
+                    <h4 class="font-bold text-gray-800">BaliMéd Negara (Karangasem)</h4>
+                    <p class="text-gray-600 text-sm mt-1">Pulmonologi - balimedhospital.co.id</p>
+                  </div>
+                  <a href="tel:+623654501452" class="bg-teal-100 text-teal-700 px-3 py-1 rounded-lg font-bold hover:bg-teal-200 transition-colors"> +62 365 450 1452 </a>
+                </div>
+              </div>
+
+              <div class="contact-card bg-white p-4 rounded-xl shadow-sm">
+                <div class="flex justify-between items-start">
+                  <div>
+                    <h4 class="font-bold text-gray-800">BaliMéd Karangasem</h4>
+                    <p class="text-gray-600 text-sm mt-1">Spesialis Pernapasan</p>
+                  </div>
+                  <a href="tel:+623634301618" class="bg-teal-100 text-teal-700 px-3 py-1 rounded-lg font-bold hover:bg-teal-200 transition-colors"> +62 363 430 1618 </a>
+                </div>
+              </div>
+
+              <div class="contact-card bg-white p-4 rounded-xl shadow-sm">
+                <div class="flex justify-between items-start">
+                  <div>
+                    <h4 class="font-bold text-gray-800">Bali International Hospital</h4>
+                    <p class="text-green-600 text-sm font-bold mt-1">24/7 - bih.id</p>
+                  </div>
+                  <a href="tel:1500238" class="bg-green-100 text-green-700 px-3 py-1 rounded-lg font-bold hover:bg-green-200 transition-colors"> 1500 238 </a>
+                </div>
+              </div>
+
+              <div class="contact-card bg-white p-4 rounded-xl shadow-sm">
+                <div class="flex justify-between items-start">
+                  <div>
+                    <h4 class="font-bold text-gray-800">BIMC Ubud</h4>
+                    <p class="text-gray-600 text-sm mt-1">Klinik Medis Turis/Internasional</p>
+                  </div>
+                  <a href="tel:+623612091030" class="bg-teal-100 text-teal-700 px-3 py-1 rounded-lg font-bold hover:bg-teal-200 transition-colors"> +62 361 2091 030 </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-gray-100 p-4 rounded-b-2xl border-t border-gray-200">
+          <p class="text-center text-gray-600 text-sm">💡 <strong>Tips:</strong> Simpan kontak darurat di ponsel Anda. Untuk keadaan darurat, hubungi 112 terlebih dahulu.</p>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let knownDeviceIds = new Set(JSON.parse(localStorage.getItem("knownDeviceIds") || "[]"));
+      // Gunakan API_CONFIG dari config.js
+      let allRsuData = {};
+      let chartInstances = {};
+      let isAdmin = false;
+      let adminToken = "";
+      let adminUsername = "";
+      // 🔹 Menyimpan raw data dari backend (per device)
+      let allRawRsuData = {};
+
+      // 🔹 Range tanggal yang dipilih user (max 30 hari)
+      let rangeStartDate = null;
+      let rangeEndDate = new Date();
+
+      // Traffic Pollution Categories
+      const trafficPollutionCategories = [
+        {
+          range: [0, 50],
+          status: "Baik",
+          color: "#A8E05F",
+          bgColor: "bg-lime-500",
+          textColor: "text-lime-800",
+          coRange: "0.0 – 4.4 ppm",
+          pm25Range: "0 – 12.0 µg/m³",
+        },
+        {
+          range: [51, 100],
+          status: "Sedang",
+          color: "#FDD74B",
+          bgColor: "bg-yellow-500",
+          textColor: "text-yellow-800",
+          coRange: "4.5 – 9.4 ppm",
+          pm25Range: "12.1 – 35.4 µg/m³",
+        },
+        {
+          range: [101, 150],
+          status: "Tidak Sehat Bagi Kelompok Sensitif",
+          color: "#FF9B57",
+          bgColor: "bg-orange-500",
+          textColor: "text-orange-800",
+          coRange: "9.5 – 12.4 ppm",
+          pm25Range: "35.5 – 55.4 µg/m³",
+        },
+        {
+          range: [151, 200],
+          status: "Tidak Sehat",
+          color: "#FF6B6B",
+          bgColor: "bg-red-500",
+          textColor: "text-red-800",
+          coRange: "12.5 – 15.4 ppm",
+          pm25Range: "55.5 – 150.4 µg/m³",
+        },
+        {
+          range: [201, 300],
+          status: "Sangat Tidak Sehat",
+          color: "#A97CF0",
+          bgColor: "bg-purple-500",
+          textColor: "text-purple-800",
+          coRange: "15.5 – 30.4 ppm",
+          pm25Range: "150.5 – 250.4 µg/m³",
+        },
+        {
+          range: [301, 500],
+          status: "Berbahaya",
+          color: "#C07A7A",
+          bgColor: "bg-rose-700",
+          textColor: "text-rose-800",
+          coRange: "≥ 30.5 ppm",
+          pm25Range: "≥ 250.5 µg/m³",
+        },
+      ];
+
+      // Notification system
+      const showNotification = (message, type = "info") => {
+        const existingNotification = document.getElementById("global-notification");
+        if (existingNotification) {
+          existingNotification.remove();
+        }
+
+        const notification = document.createElement("div");
+        notification.id = "global-notification";
+        notification.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg text-white font-semibold ${type === "success" ? "bg-green-500" : type === "error" ? "bg-red-500" : "bg-blue-500"}`;
+        notification.textContent = message;
+
+        document.body.appendChild(notification);
+
+        setTimeout(() => {
+          if (notification.parentNode) {
+            notification.remove();
+          }
+        }, 5000);
+      };
+
+      // Authentication System
+      const checkAuth = () => {
+        const token = localStorage.getItem("adminToken");
+        const adminData = localStorage.getItem("adminData");
+
+        if (token && adminData) {
+          try {
+            const parsedAdmin = JSON.parse(adminData);
+            isAdmin = true;
+            adminToken = token;
+            adminUsername = parsedAdmin.username;
+            updateUIForAdmin();
+            return true;
+          } catch (error) {
+            console.error("Error parsing admin data:", error);
+            logout();
+          }
+        } else {
+          isAdmin = false;
+          updateUIForUser();
+        }
+        return false;
+      };
+
+      // Update UI for Admin
+      const updateUIForAdmin = () => {
+        console.log("🔑 adminToken sekarang:", adminToken);
+        const adminBar = document.getElementById("adminBar");
+        const adminSection = document.getElementById("adminSection");
+        // addNewSection sengaja tidak dipakai lagi
+        // const addNewSection = document.getElementById("addNewSection");
+
+        if (adminBar) {
+          adminBar.classList.remove("hidden");
+          const adminNameSpan = document.getElementById("adminName");
+          if (adminNameSpan) {
+            adminNameSpan.textContent = `👤 ${adminUsername}`;
+          }
+        }
+
+        if (adminSection) {
+          const shortToken = adminToken ? "..." + adminToken.slice(-6) : "no token";
+
+          adminSection.innerHTML = `
+            <div class="flex items-center space-x-3 text-dark-teal">
+              <span class="w-8 h-8 bg-teal-200 text-dark-teal rounded-full flex items-center justify-center font-bold">
+                ${adminUsername.charAt(0).toUpperCase()}
+              </span>
+              <div class="flex flex-col text-xs">
+                <span class="font-semibold">${adminUsername}</span>
+                <span class="text-[10px] text-gray-500">Token: ${shortToken}</span>
+              </div>
+              <button id="logoutBtn"
+                class="bg-red-500 hover:bg-red-600 text-white py-1 px-3 rounded-lg text-xs flex items-center transition-all duration-300">
+                Logout
+              </button>
+            </div>
+          `;
+
+          setTimeout(() => {
+            const logoutBtn = document.getElementById("logoutBtn");
+            if (logoutBtn) logoutBtn.addEventListener("click", logout);
+          }, 100);
+        }
+      };
+
+      // Update UI for Regular User
+      // Update UI for Regular User
+      const updateUIForUser = () => {
+        const adminBar = document.getElementById("adminBar");
+        const adminSection = document.getElementById("adminSection");
+        const addNewSection = document.getElementById("addNewSection");
+
+        if (adminBar) adminBar.classList.add("hidden");
+        if (addNewSection) addNewSection.classList.add("hidden");
+
+        if (adminSection) {
+          adminSection.innerHTML = `
+      <button id="loginBtn"
+        class="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg text-sm flex items-center transition-all duration-300 hover:scale-105">
+        Admin Login
+      </button>
+    `;
+
+          setTimeout(() => {
+            const loginBtn = document.getElementById("loginBtn");
+            if (loginBtn) loginBtn.addEventListener("click", showLoginModal); // ✅ buka modal
+          }, 50);
+        }
+      };
+
+      // Logout function
+      const logout = () => {
+        localStorage.removeItem("adminToken");
+        localStorage.removeItem("adminData");
+        isAdmin = false;
+        adminToken = "";
+        adminUsername = "";
+        checkAuth();
+        window.location.reload();
+      };
+
+      // Login Modal Functions
+      const showLoginModal = () => {
+        document.getElementById("loginModal").classList.remove("hidden");
+      };
+
+      const closeLoginModal = () => {
+        document.getElementById("loginModal").classList.add("hidden");
+      };
+
+      // Health Helpline Modal Functions
+      const showHealthHelplineModal = () => {
+        document.getElementById("health-helpline-modal").style.display = "flex";
+      };
+
+      const closeHealthHelplineModal = () => {
+        document.getElementById("health-helpline-modal").style.display = "none";
+      };
+
+      // Handle Login dengan API_CONFIG
+      const handleLogin = async (e) => {
+        e.preventDefault();
+        const username = document.getElementById("username").value;
+        const password = document.getElementById("password").value;
+        const errorElem = document.getElementById("loginError");
+
+        try {
+          const response = await API_CONFIG.fetchData(
+            "LOGIN_API",
+            {},
+            {
+              method: "POST",
+              body: { username, password },
+            }
+          );
+
+          if (response.message === "Login berhasil" && response.token && response.username) {
+            localStorage.setItem("adminToken", response.token);
+            localStorage.setItem(
+              "adminData",
+              JSON.stringify({
+                username: response.username,
+              })
+            );
+
+            closeLoginModal();
+            checkAuth();
+            showNotification("Login successful! Welcome " + response.username, "success");
+          } else {
+            errorElem.textContent = response.message || "Username atau password salah";
+            errorElem.classList.remove("hidden");
+          }
+        } catch (error) {
+          errorElem.textContent = "Login error: " + error.message;
+          errorElem.classList.remove("hidden");
+        }
+      };
+
+      // Add Modal Functions
+      const showAddModal = () => {
+        document.getElementById("addModal").classList.remove("hidden");
+      };
+
+      const closeAddModal = () => {
+        document.getElementById("addModal").classList.add("hidden");
+      };
+
+      // Handle Add dengan API_CONFIG
+      const handleAdd = async (e) => {
+        e.preventDefault();
+        const deviceID_Tanggal = document.getElementById("addDeviceID_Tanggal").value;
+        const timestamp = document.getElementById("addTimestamp").value;
+        const aqi = parseInt(document.getElementById("addAQI").value);
+        const latitude = parseFloat(document.getElementById("addLatitude").value);
+        const longitude = parseFloat(document.getElementById("addLongitude").value);
+        const mq7 = parseFloat(document.getElementById("addMQ7").value);
+        const gp2y1010 = parseFloat(document.getElementById("addGP2Y1010").value);
+        const errorElem = document.getElementById("addError");
+
+        if (!deviceID_Tanggal || !timestamp) {
+          errorElem.textContent = "Semua field harus diisi";
+          errorElem.classList.remove("hidden");
+          return;
+        }
+
+        if (!adminToken) {
+          errorElem.textContent = "Token admin tidak valid. Silakan login ulang.";
+          errorElem.classList.remove("hidden");
+          return;
+        }
+
+        try {
+          const jam = document.getElementById("editJam").value; // ✅
+
+          const requestBody = {
+            action: "update",
+            token: adminToken,
+            DeviceID_Tanggal: deviceID_Tanggal,
+            Jam: jam, // ✅ WAJIB
+            updates: {
+              AQI: aqi,
+              // optional: backend kamu boleh terima field lain juga
+              latitude,
+              longitude,
+              MQ7: mq7,
+              GP2Y1010: gp2y1010,
+            },
+          };
+
+          const response = await API_CONFIG.fetchData(
+            "UPDATE_API",
+            {},
+            {
+              method: "PUT",
+              body: requestBody,
+            }
+          );
+
+          if (response.message === "Data updated successfully") {
+            closeAddModal();
+            document.getElementById("addForm").reset();
+            fetchAllRsuData();
+            showNotification("Data berhasil ditambahkan!", "success");
+          } else {
+            errorElem.textContent = response.message || "Gagal menambahkan data";
+            errorElem.classList.remove("hidden");
+          }
+        } catch (error) {
+          console.error("Add error details:", error);
+          if (error.name === "TypeError" && error.message.includes("Failed to fetch")) {
+            errorElem.textContent = "Koneksi jaringan bermasalah. Periksa koneksi internet Anda atau API endpoint mungkin sedang down.";
+          } else if (error.message.includes("401")) {
+            errorElem.textContent = "Token tidak valid. Silakan login ulang.";
+            logout();
+          } else {
+            errorElem.textContent = "Add error: " + error.message;
+          }
+          errorElem.classList.remove("hidden");
+        }
+      };
+
+      // ✅ helper: ambil "Jam" dari "2025-12-17 03:00" -> "03"
+      function extractJam(tsOrJam) {
+        const s = String(tsOrJam ?? "").trim();
+        if (/^\d{2}$/.test(s)) return s;
+
+        const timePart = s.includes(" ") ? s.split(" ")[1] : s;
+        const hh = (timePart || "").split(":")[0];
+
+        if (/^\d{1,2}$/.test(hh)) return String(hh).padStart(2, "0");
+        throw new Error(`Format Jam tidak valid dari: "${s}"`);
+      }
+
+      // Edit Modal Functions
+      // Edit Modal Functions (FIX: signature sesuai pemanggilan dari tombol)
+      const showEditModal = (deviceID_Tanggal, jam, timestamp, aqi, latitude, longitude, co, pm25) => {
+        // fallback kalau jam belum ada
+        const jamFix = jam || extractJam(timestamp);
+
+        document.getElementById("editDeviceID_Tanggal").value = deviceID_Tanggal;
+        document.getElementById("editTimestamp").value = timestamp || "";
+        document.getElementById("editJam").value = jamFix; // ✅ inilah yang dipakai backend
+
+        document.getElementById("editAQI").value = aqi ?? "";
+        document.getElementById("editLatitude").value = latitude ?? "";
+        document.getElementById("editLongitude").value = longitude ?? "";
+        document.getElementById("editMQ7").value = co ?? "";
+        document.getElementById("editGP2Y1010").value = pm25 ?? "";
+
+        document.getElementById("editError").classList.add("hidden");
+        document.getElementById("editModal").classList.remove("hidden");
+      };
+
+      const closeEditModal = () => {
+        document.getElementById("editModal").classList.add("hidden");
+      };
+
+      // Handle Edit dengan API_CONFIG
+      const handleEdit = async (e) => {
+        e.preventDefault();
+
+        const deviceID_Tanggal = document.getElementById("editDeviceID_Tanggal").value;
+        const timestamp = document.getElementById("editTimestamp").value;
+        const jam = document.getElementById("editJam").value || extractJam(timestamp);
+
+        const aqi = parseInt(document.getElementById("editAQI").value);
+        const latitude = parseFloat(document.getElementById("editLatitude").value);
+        const longitude = parseFloat(document.getElementById("editLongitude").value);
+        const mq7 = parseFloat(document.getElementById("editMQ7").value);
+        const gp2y1010 = parseFloat(document.getElementById("editGP2Y1010").value);
+
+        const errorElem = document.getElementById("editError");
+
+        if (!deviceID_Tanggal || !jam) {
+          errorElem.textContent = "DeviceID_Tanggal dan Jam harus ada";
+          errorElem.classList.remove("hidden");
+          return;
+        }
+
+        if (!adminToken) {
+          errorElem.textContent = "Token admin tidak valid. Silakan login ulang.";
+          errorElem.classList.remove("hidden");
+          return;
+        }
+
+        try {
+          // ✅ pakai nama field backend
+          const updates = {
+            AQI: aqi,
+            CO: mq7,
+            "PM2.5": gp2y1010,
+          };
+
+          // ✅ lat/lon optional (kirim kalau valid)
+          if (Number.isFinite(latitude)) {
+            updates.latitude = latitude; // jika backend pakai "latitude"
+            updates.lat = latitude; // jika backend pakai "lat" (opsional aman)
+          }
+          if (Number.isFinite(longitude)) {
+            updates.longitude = longitude; // jika backend pakai "longitude"
+            updates.long = longitude; // jika backend pakai "long" (opsional aman)
+          }
+
+          const requestBody = {
+            action: "update",
+            token: adminToken,
+            DeviceID_Tanggal: deviceID_Tanggal,
+            Jam: jam, // ✅ kunci utama record
+            updates,
+          };
+
+          console.log("✅ Update payload:", requestBody);
+
+          const response = await API_CONFIG.fetchData(
+            "UPDATE_API",
+            {},
+            {
+              method: "PUT",
+              body: requestBody,
+            }
+          );
+
+          console.log("✅ Update response:", response);
+
+          if (response.message === "Data updated successfully") {
+            closeEditModal();
+            document.getElementById("editForm").reset();
+            fetchAllRsuData(); // refetch dari server
+            showNotification("Data berhasil diupdate!", "success");
+          } else {
+            errorElem.textContent = response.message || "Gagal mengupdate data";
+            errorElem.classList.remove("hidden");
+          }
+        } catch (error) {
+          console.error("❌ Update error:", error);
+          errorElem.textContent = "Update error: " + (error?.message || error);
+          errorElem.classList.remove("hidden");
+        }
+      };
+
+      // Handle Delete dengan API_CONFIG
+      // Handle Delete dengan API_CONFIG
+      // Handle Delete dengan API_CONFIG
+      // Handle Delete dengan API_CONFIG
+      // ✅ helper fetch yang tetap baca response walau error
+      const fetchJsonSafe = async (url, options = {}) => {
+        const res = await fetch(url, {
+          ...options,
+          headers: {
+            "Content-Type": "application/json",
+            ...(options.headers || {}),
+          },
+        });
+
+        const text = await res.text();
+        let data = {};
+        try {
+          data = text ? JSON.parse(text) : {};
+        } catch {
+          data = { message: text };
+        }
+
+        if (!res.ok) {
+          const err = new Error(`HTTP ${res.status}`);
+          err.status = res.status;
+          err.data = data;
+          throw err;
+        }
+        return data;
+      };
+
+      // ✅ DELETE yang tahan banting: querystring dulu (tanpa body), lalu fallback body
+      // ✅ helper: ambil "Jam" dari input (bisa "08" atau "2025-12-15 08:00")
+
+      const handleDelete = async (deviceID_Tanggal, timestampOrJam) => {
+        if (!confirm("Are you sure you want to delete this data?")) return;
+
+        if (!adminToken) {
+          alert("Token admin tidak valid. Silakan login ulang.");
+          return;
+        }
+
+        const jam = extractJam(timestampOrJam); // ✅ backend butuh ini
+
+        try {
+          const requestBody = {
+            action: "delete",
+            token: adminToken,
+            DeviceID_Tanggal: deviceID_Tanggal,
+            Jam: jam, // ✅ sesuai kontrak backend
+          };
+
+          console.log("🗑️ Delete payload:", requestBody);
+
+          // pakai API_CONFIG biar konsisten
+          const response = await API_CONFIG.fetchData(
+            "DELETE_API",
+            {},
+            {
+              method: "DELETE",
+              body: requestBody,
+            }
+          );
+
+          console.log("🗑️ Delete response:", response);
+
+          const msg = String(response?.message || "").toLowerCase();
+          const ok = response?.success === true || msg.includes("deleted") || msg.includes("berhasil");
+
+          if (!ok) {
+            showNotification("Gagal menghapus data: " + (response?.message || "Unknown error"), "error");
+            return;
+          }
+
+          // ✅ refresh dari server biar data pasti sinkron
+          showNotification(response?.message || "Data berhasil dihapus!", "success");
+          await fetchAllRsuData();
+        } catch (error) {
+          console.error("❌ Delete error details:", error);
+          showNotification("Delete error: " + (error?.message || error), "error");
+        }
+      };
+
+      // Fungsi untuk menghitung indeks dari nilai CO
+      const calculateIndexFromCO = (co) => {
+        const coValue = parseFloat(co) || 0;
+        if (coValue <= 4.4) return Math.round((coValue / 4.4) * 50);
+        if (coValue <= 9.4) return Math.round(51 + ((coValue - 4.5) / (9.4 - 4.5)) * 49);
+        if (coValue <= 12.4) return Math.round(101 + ((coValue - 9.5) / (12.4 - 9.5)) * 49);
+        if (coValue <= 15.4) return Math.round(151 + ((coValue - 12.5) / (15.4 - 12.5)) * 49);
+        if (coValue <= 30.4) return Math.round(201 + ((coValue - 15.5) / (30.4 - 15.5)) * 99);
+        return Math.round(301 + ((coValue - 30.5) / Math.max(coValue - 30.5, 1)) * 199);
+      };
+
+      // Fungsi untuk mendapatkan kategori dari indeks
+      const getCategoryFromIndex = (index) => {
+        const idx = parseInt(index) || 0;
+        return trafficPollutionCategories.find((cat) => idx >= cat.range[0] && idx <= cat.range[1]) || trafficPollutionCategories[5];
+      };
+
+      const formatDate = (date) => {
+        const day = String(date.getDate()).padStart(2, "0");
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const year = date.getFullYear();
+        return `${day}-${month}-${year}`;
+      };
+
+      const formatDateForApi = (date) => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
+      };
+
+      const formatTime = (date) => {
+        return date.toLocaleTimeString("id-ID", {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+      };
+
+      const initializeDatePickers = () => {
+        const today = new Date();
+
+        rangeStartDate = new Date(today);
+        rangeEndDate = new Date(today);
+
+        const applyAndFetch = () => {
+          updateRangeInfoUI();
+          fetchAllRsuData();
+        };
+
+        const clampToMax30Days = () => {
+          const days = daysBetweenInclusive(rangeStartDate, rangeEndDate);
+          if (days <= 30) return;
+
+          showNotification("Maksimal rentang tanggal adalah 30 hari.", "error");
+
+          // set end = start + 29 hari (tapi tidak melebihi today)
+          const newEnd = new Date(rangeStartDate);
+          newEnd.setDate(newEnd.getDate() + 29);
+
+          if (newEnd > today) {
+            rangeEndDate = new Date(today);
+          } else {
+            rangeEndDate = newEnd;
+          }
+
+          if (endPicker) endPicker.setDate(rangeEndDate, false);
+        };
+
+        startPicker = flatpickr("#startDateInput", {
+          dateFormat: "d-m-Y",
+          defaultDate: today,
+          maxDate: "today",
+          onChange: (selectedDates) => {
+            if (!selectedDates.length) return;
+            rangeStartDate = selectedDates[0];
+
+            // kalau end < start, samakan end = start
+            if (rangeEndDate < rangeStartDate) {
+              rangeEndDate = new Date(rangeStartDate);
+              if (endPicker) endPicker.setDate(rangeEndDate, false);
+            }
+
+            clampToMax30Days();
+            applyAndFetch();
+          },
+        });
+
+        endPicker = flatpickr("#endDateInput", {
+          dateFormat: "d-m-Y",
+          defaultDate: today,
+          maxDate: "today",
+          onChange: (selectedDates) => {
+            if (!selectedDates.length) return;
+            rangeEndDate = selectedDates[0];
+
+            // kalau end < start, samakan start = end
+            if (rangeEndDate < rangeStartDate) {
+              rangeStartDate = new Date(rangeEndDate);
+              if (startPicker) startPicker.setDate(rangeStartDate, false);
+            }
+
+            clampToMax30Days();
+            applyAndFetch();
+          },
+        });
+
+        updateRangeInfoUI();
+      };
+
+      const lastFinite = (arr) => {
+        for (let i = arr.length - 1; i >= 0; i--) {
+          const v = arr[i];
+          if (Number.isFinite(v)) return v;
+        }
+        return null;
+      };
+
+      const avgFinite = (arr) => {
+        const xs = arr.filter((v) => Number.isFinite(v));
+        if (!xs.length) return null;
+        return xs.reduce((a, b) => a + b, 0) / xs.length;
+      };
+
+      let startPicker = null;
+      let endPicker = null;
+
+      const daysBetweenInclusive = (a, b) => {
+        const s = new Date(a);
+        const e = new Date(b);
+        s.setHours(0, 0, 0, 0);
+        e.setHours(0, 0, 0, 0);
+        const ms = e.getTime() - s.getTime();
+        return Math.floor(ms / (1000 * 60 * 60 * 24)) + 1;
+      };
+
+      const getAutoPeriod = () => {
+        const days = daysBetweenInclusive(rangeStartDate, rangeEndDate);
+        if (days <= 1) return "hour";
+        if (days <= 14) return "day";
+        return "week";
+      };
+
+      const getAutoPeriodLabel = (p) => {
+        if (p === "hour") return "Per Jam";
+        if (p === "day") return "Per Hari";
+        return "Per Minggu";
+      };
+
+      const updateRangeInfoUI = () => {
+        const info = document.getElementById("rangeInfo");
+        const badge = document.getElementById("autoPeriodBadge");
+        if (!info || !badge) return;
+
+        const days = daysBetweenInclusive(rangeStartDate, rangeEndDate);
+        const p = getAutoPeriod();
+
+        info.innerHTML = `
+    Terpilih: <span class="font-semibold text-gray-700">${days} hari</span>
+    <span class="text-gray-400">•</span>
+    Maks: <span class="font-semibold text-gray-700">30 hari</span>
+  `;
+        badge.textContent = `Auto: ${getAutoPeriodLabel(p)}`;
+      };
+
+      // ✅ date key lokal (Bali) tanpa UTC shift
+      const toLocalISODate = (d) => {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
+        return `${y}-${m}-${day}`;
+      };
+
+      // ✅ ambil data raw yang benar-benar ada di range kalender
+      const filterRawByRange = (data) => {
+        const start = rangeStartDate ? new Date(rangeStartDate) : new Date(currentDate);
+        const end = rangeEndDate ? new Date(rangeEndDate) : new Date(currentDate);
+
+        start.setHours(0, 0, 0, 0);
+        end.setHours(23, 59, 59, 999);
+
+        return (data || [])
+          .filter((item) => {
+            const d = new Date(item.TimestampISO || item.Timestamp);
+            return !isNaN(d.getTime()) && d >= start && d <= end;
+          })
+          .sort((a, b) => ((a.TimestampISO || a.Timestamp) > (b.TimestampISO || b.Timestamp) ? 1 : -1));
+      };
+      const filterDataByPeriod = (data) => {
+        if (!data || data.length === 0) return [];
+
+        const period = getAutoPeriod();
+
+        const start = new Date(rangeStartDate);
+        const end = new Date(rangeEndDate);
+        start.setHours(0, 0, 0, 0);
+        end.setHours(23, 59, 59, 999);
+
+        const deviceId = data[0]?.DeviceID || "UNKNOWN";
+
+        // ===== HOUR (1 hari) -> selalu 24 slot =====
+        if (period === "hour") {
+          const dayKey = toLocalISODate(start); // start=end
+          const buckets = Array.from({ length: 24 }, () => []);
+
+          data.forEach((item) => {
+            const d = new Date(item.TimestampISO || item.Timestamp);
+            if (isNaN(d.getTime())) return;
+            if (toLocalISODate(d) !== dayKey) return;
+            buckets[d.getHours()].push(item);
+          });
+
+          const out = [];
+          for (let h = 0; h < 24; h++) {
+            const hh = String(h).padStart(2, "0");
+            const hourData = buckets[h];
+
+            out.push({
+              DeviceID: deviceId,
+              DeviceID_Tanggal: `${deviceId}#${dayKey}`,
+              Timestamp: `${dayKey} ${hh}:00`,
+              TimestampISO: `${dayKey}T${hh}:00:00`,
+
+              AQI: (() => {
+                const v = avgFinite(hourData.map((it) => it.AQI));
+                return v === null ? null : Math.round(v);
+              })(),
+              MQ7: (() => {
+                const v = avgFinite(hourData.map((it) => it.MQ7));
+                return v === null ? null : Number(v.toFixed(2));
+              })(),
+              GP2Y1010: (() => {
+                const v = avgFinite(hourData.map((it) => it.GP2Y1010));
+                return v === null ? null : Number(v.toFixed(2));
+              })(),
+            });
+          }
+          return out;
+        }
+
+        // ===== DAY (2–14 hari) -> semua hari muncul (walau null) =====
+        if (period === "day") {
+          const daysList = [];
+          const cur = new Date(start);
+          cur.setHours(0, 0, 0, 0);
+
+          while (cur <= end) {
+            daysList.push(toLocalISODate(cur));
+            cur.setDate(cur.getDate() + 1);
+          }
+
+          const buckets = {};
+          daysList.forEach((k) => (buckets[k] = []));
+
+          data.forEach((item) => {
+            const d = new Date(item.TimestampISO || item.Timestamp);
+            if (isNaN(d.getTime())) return;
+            if (d < start || d > end) return;
+            const k = toLocalISODate(d);
+            if (!buckets[k]) buckets[k] = [];
+            buckets[k].push(item);
+          });
+
+          return daysList.map((dayKey) => {
+            const dayData = buckets[dayKey] || [];
+            return {
+              DeviceID: deviceId,
+              DeviceID_Tanggal: `${deviceId}#${dayKey}`,
+              Timestamp: dayKey,
+              TimestampISO: `${dayKey}T00:00:00`,
+              AQI: (() => {
+                const v = avgFinite(dayData.map((it) => it.AQI));
+                return v === null ? null : Math.round(v);
+              })(),
+              MQ7: (() => {
+                const v = avgFinite(dayData.map((it) => it.MQ7));
+                return v === null ? null : Number(v.toFixed(2));
+              })(),
+              GP2Y1010: (() => {
+                const v = avgFinite(dayData.map((it) => it.GP2Y1010));
+                return v === null ? null : Number(v.toFixed(2));
+              })(),
+            };
+          });
+        }
+
+        // ===== WEEK (15–30 hari) -> per 7 hari chunk =====
+        const totalDays = daysBetweenInclusive(start, end);
+        const totalWeeks = Math.ceil(totalDays / 7);
+        const weekBuckets = Array.from({ length: totalWeeks }, () => []);
+
+        const startKeyDate = new Date(toLocalISODate(start));
+        startKeyDate.setHours(0, 0, 0, 0);
+
+        data.forEach((item) => {
+          const d = new Date(item.TimestampISO || item.Timestamp);
+          if (isNaN(d.getTime())) return;
+          if (d < start || d > end) return;
+
+          const dKey = new Date(toLocalISODate(d));
+          dKey.setHours(0, 0, 0, 0);
+
+          const diffDays = Math.floor((dKey.getTime() - startKeyDate.getTime()) / (1000 * 60 * 60 * 24));
+          const w = Math.min(totalWeeks - 1, Math.floor(diffDays / 7));
+          weekBuckets[w].push(item);
+        });
+
+        const res = [];
+        for (let w = 0; w < totalWeeks; w++) {
+          const ws = new Date(start);
+          ws.setDate(start.getDate() + w * 7);
+          ws.setHours(0, 0, 0, 0);
+
+          const we = new Date(ws);
+          we.setDate(ws.getDate() + 6);
+          if (we > end) we.setTime(end.getTime());
+
+          const label = `Minggu ${w + 1} (${formatDate(ws)}–${formatDate(we)})`;
+          const weekData = weekBuckets[w] || [];
+
+          res.push({
+            DeviceID: deviceId,
+            DeviceID_Tanggal: `${deviceId}#${toLocalISODate(ws)}`,
+            Timestamp: label,
+            TimestampISO: `${toLocalISODate(ws)}T00:00:00`,
+            AQI: (() => {
+              const v = avgFinite(weekData.map((it) => it.AQI));
+              return v === null ? null : Math.round(v);
+            })(),
+            MQ7: (() => {
+              const v = avgFinite(weekData.map((it) => it.MQ7));
+              return v === null ? null : Number(v.toFixed(2));
+            })(),
+            GP2Y1010: (() => {
+              const v = avgFinite(weekData.map((it) => it.GP2Y1010));
+              return v === null ? null : Number(v.toFixed(2));
+            })(),
+          });
+        }
+
+        return res;
+      };
+
+      const downloadCSV = (deviceId, data) => {
+        const headers = ["Timestamp", "AQI (PM2.5 - CO)", "CO (ppm)", "PM2.5 (µg/m³)", "Status"];
+        const csvContent = [headers.join(","), ...data.map((item) => [item.Timestamp, item.AQI, item.MQ7, item.GP2Y1010, getCategoryFromIndex(item.AQI).status].join(","))].join("\n");
+
+        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", `${deviceId}_indeks_polusi_${formatDate(new Date())}.csv`);
+        link.style.visibility = "hidden";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      };
+
+      const downloadExcel = (deviceId, data) => {
+        const worksheet = XLSX.utils.json_to_sheet(
+          data.map((item) => ({
+            Timestamp: item.Timestamp,
+            "AQI (PM2.5 - CO)": item.AQI,
+            "CO (ppm)": item.MQ7,
+            "PM2.5 (µg/m³)": item.GP2Y1010,
+            Status: getCategoryFromIndex(item.AQI).status,
+          }))
+        );
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, `${deviceId} Data`);
+        XLSX.writeFile(workbook, `${deviceId}_indeks_polusi_${formatDate(new Date())}.xlsx`);
+      };
+
+      // 🔹 Download CSV untuk range tanggal yang dipilih (aggregated data saja)
+      const downloadRangeCSV = (deviceId) => {
+        const aggregatedAll = allRsuData[deviceId] || [];
+
+        const start = rangeStartDate ? new Date(rangeStartDate) : new Date(currentDate);
+        const end = rangeEndDate ? new Date(rangeEndDate) : new Date(currentDate);
+        start.setHours(0, 0, 0, 0);
+        end.setHours(23, 59, 59, 999);
+
+        const aggregatedInRange = aggregatedAll.filter((item) => {
+          const d = new Date(item.TimestampISO || item.Timestamp);
+          return !isNaN(d.getTime()) && d >= start && d <= end;
+        });
+
+        if (!aggregatedInRange.length) {
+          showNotification("Tidak ada data dalam rentang tanggal yang dipilih.", "error");
+          return;
+        }
+
+        const headers = ["Date", "Time", "AQI (PM2.5 - CO)", "PM2.5 (µg/m³)", "CO (ppm)", "AQI Category", "Latitude", "Longitude"];
+
+        const rows = aggregatedInRange.map((item) => {
+          const d = new Date(item.TimestampISO || item.Timestamp);
+          const dateStr = toLocalISODate(d);
+          if (dateStr !== selectedDateStr) return;
+          const timeStr = d.toTimeString().slice(0, 8);
+          const cat = getCategoryFromIndex(item.AQI);
+          return [dateStr, timeStr, item.AQI, item.GP2Y1010, item.MQ7, cat.status, item.latitude ?? "", item.longitude ?? ""];
+        });
+
+        const csvContent = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+
+        const startLabel = formatDate(start);
+        const endLabel = formatDate(end);
+
+        link.href = url;
+        link.download = `${deviceId}_range_${startLabel}_to_${endLabel}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      };
+
+      // 🔹 Download Excel: per hari = 1 sheet, berisi Aggregated + Raw
+      const downloadRangeExcel = (deviceId) => {
+        const aggregatedAll = allRsuData[deviceId] || [];
+        const rawAll = allRawRsuData[deviceId] || [];
+
+        const start = rangeStartDate ? new Date(rangeStartDate) : new Date(currentDate);
+        const end = rangeEndDate ? new Date(rangeEndDate) : new Date(currentDate);
+        start.setHours(0, 0, 0, 0);
+        end.setHours(23, 59, 59, 999);
+
+        if (!aggregatedAll.length && !rawAll.length) {
+          showNotification("Tidak ada data untuk device ini pada rentang yang dipilih.", "error");
+          return;
+        }
+
+        const workbook = XLSX.utils.book_new();
+        const current = new Date(start);
+
+        while (current <= end) {
+          const dateStr = current.toISOString().split("T")[0];
+
+          const aggForDay = aggregatedAll.filter((item) => {
+            const d = new Date(item.TimestampISO || item.Timestamp);
+            return !isNaN(d.getTime()) && d.toISOString().split("T")[0] === dateStr;
+          });
+
+          const rawForDay = rawAll.filter((item) => {
+            const d = new Date(item.TimestampISO || item.Timestamp);
+            return !isNaN(d.getTime()) && d.toISOString().split("T")[0] === dateStr;
+          });
+
+          const rows = [];
+
+          rows.push([`Tanggal: ${dateStr}`]);
+          rows.push([]);
+          rows.push(["Aggregated per hour"]);
+          rows.push(["Hour", "AQI (PM2.5 - CO)", "PM2.5 (µg/m³)", "CO (ppm)", "AQI Category", "Latitude", "Longitude"]);
+
+          if (aggForDay.length) {
+            aggForDay.forEach((item) => {
+              const d = new Date(item.TimestampISO || item.Timestamp);
+              const hourStr = d.toTimeString().slice(0, 5); // HH:MM
+              const cat = getCategoryFromIndex(item.AQI);
+              rows.push([hourStr, item.AQI, item.GP2Y1010, item.MQ7, cat.status, item.latitude ?? "", item.longitude ?? ""]);
+            });
+          } else {
+            rows.push(["(tidak ada data agregasi untuk tanggal ini)"]);
+          }
+
+          rows.push([]);
+          rows.push(["Raw measurements"]);
+          rows.push(["Timestamp", "PM2.5 (µg/m³)", "CO (ppm)", "Latitude", "Longitude"]);
+
+          if (rawForDay.length) {
+            rawForDay.forEach((item) => {
+              rows.push([item.Timestamp, item.PM25, item.CO, item.latitude ?? "", item.longitude ?? ""]);
+            });
+          } else {
+            rows.push(["(tidak ada raw data untuk tanggal ini)"]);
+          }
+
+          const worksheet = XLSX.utils.aoa_to_sheet(rows);
+          const sheetName = dateStr.slice(5); // "MM-DD" biar sheet name pendek
+          XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+
+          current.setDate(current.getDate() + 1);
+        }
+
+        const startLabel = formatDate(start);
+        const endLabel = formatDate(end);
+        XLSX.writeFile(workbook, `${deviceId}_range_${startLabel}_to_${endLabel}.xlsx`);
+      };
+
+      const processApiData = (data) => {
+        if (!Array.isArray(data) || data.length === 0) return [];
+
+        // kalau backend ngirim model DynamoDB: {N:"76"} / {S:"RMU1#2025-12-15"}
+        const unwrap = (v) => {
+          if (v && typeof v === "object") {
+            if ("S" in v) return v.S;
+            if ("N" in v) return v.N;
+            if ("BOOL" in v) return v.BOOL;
+          }
+          return v;
+        };
+
+        const toNumOrNull = (v) => {
+          v = unwrap(v);
+          if (v === null || v === undefined || v === "") return null;
+
+          // bersihkan kasus: "'-8.70917" atau ada koma ribuan
+          const s = String(v).trim().replace(/^'+/, "").replace(/,/g, "");
+          const n = Number(s);
+
+          return Number.isFinite(n) ? n : null;
+        };
+
+        const toStrOrEmpty = (v) => {
+          v = unwrap(v);
+          return v === null || v === undefined ? "" : String(v);
+        };
+
+        const pad2 = (x) =>
+          String(x ?? "")
+            .trim()
+            .padStart(2, "0");
+        return data.map((item) => {
+          const deviceID_Tanggal = toStrOrEmpty(item["DeviceID#Tanggal"]) || toStrOrEmpty(item.DeviceID_Tanggal) || toStrOrEmpty(item.deviceID_Tanggal);
+
+          const deviceId = deviceID_Tanggal ? deviceID_Tanggal.split("#")[0] : toStrOrEmpty(item.DeviceID) || "UNKNOWN";
+          const datePart = deviceID_Tanggal ? deviceID_Tanggal.split("#")[1] : "";
+
+          const jam = pad2(toStrOrEmpty(item["Jam"] ?? item.Jam));
+          const tsLabel = datePart ? `${datePart} ${jam}:00` : toStrOrEmpty(item.Timestamp || item.timestamp);
+          const tsISO = datePart ? `${datePart}T${jam}:00:00` : tsLabel ? tsLabel.replace(" ", "T") + ":00" : "";
+
+          const aqi = toNumOrNull(item.AQI);
+          const co = toNumOrNull(item.CO); // backend: CO
+          const pm25 = toNumOrNull(item["PM2.5"]); // backend: PM2.5
+
+          const latitude = toNumOrNull(item.latitude);
+          const longitude = toNumOrNull(item.longitude);
+
+          return {
+            DeviceID: deviceId,
+            DeviceID_Tanggal: deviceID_Tanggal || (datePart ? `${deviceId}#${datePart}` : `${deviceId}#unknown`),
+
+            Jam: jam, // ✅ PENTING: backend butuh Jam
+
+            Timestamp: tsLabel,
+            TimestampISO: tsISO,
+
+            AQI: aqi,
+            MQ7: co,
+            GP2Y1010: pm25,
+
+            latitude: latitude,
+            longitude: longitude,
+          };
+        });
+      };
+
+      // Fetch All Data dengan API_CONFIG
+      const fetchAllDataFromAWS = async () => {
+        try {
+          const start = rangeStartDate ? new Date(rangeStartDate) : new Date(currentDate);
+          const end = rangeEndDate ? new Date(rangeEndDate) : new Date(currentDate);
+
+          start.setHours(0, 0, 0, 0);
+          end.setHours(0, 0, 0, 0);
+
+          const aggregatedByDevice = {};
+
+          // loop device & tanggal (sesuai sistem kamu sekarang)
+          for (const device of API_CONFIG.DEVICES) {
+            const current = new Date(start);
+
+            while (current <= end) {
+              const dateStr = formatDateForApi(current);
+
+              try {
+                const apiResponse = await API_CONFIG.fetchData("DATA_API", { device, date: dateStr });
+
+                let parsed = apiResponse;
+                const items = extractArray(parsed);
+
+                // ✅ normalize semua item tanpa filter
+                const processed = processApiData(items);
+
+                // ✅ masukin ke bucket per deviceId (berdasarkan DeviceID#Tanggal)
+                processed.forEach((rec) => {
+                  const dev = rec.DeviceID || device;
+                  if (!aggregatedByDevice[dev]) aggregatedByDevice[dev] = [];
+                  aggregatedByDevice[dev].push(rec);
+                });
+              } catch (err) {
+                console.error(`Fetch error ${device} ${dateStr}:`, err);
+              }
+
+              current.setDate(current.getDate() + 1);
+            }
+          }
+
+          // ✅ sort + (opsional) dedup
+          Object.keys(aggregatedByDevice).forEach((dev) => {
+            const arr = aggregatedByDevice[dev] || [];
+            arr.sort((a, b) => (a.TimestampISO > b.TimestampISO ? 1 : -1));
+
+            // dedup by DeviceID_Tanggal + Timestamp
+            const seen = new Set();
+            aggregatedByDevice[dev] = arr.filter((x) => {
+              const k = `${x.DeviceID_Tanggal}|${x.Timestamp}`;
+              if (seen.has(k)) return false;
+              seen.add(k);
+              return true;
+            });
+          });
+
+          return aggregatedByDevice;
+        } catch (error) {
+          console.error("Critical error fetching data:", error);
+          showNotification("Unable to load data due to network issues. Please refresh the page and try again.", "error");
+          return {};
+        }
+      };
+
+      const extractArray = (parsed) => {
+        if (!parsed) return [];
+
+        // kalau response dari API Gateway: { body: "..." }
+        if (parsed.body) {
+          const b = typeof parsed.body === "string" ? JSON.parse(parsed.body) : parsed.body;
+          return extractArray(b);
+        }
+
+        // kalau DynamoDB style: { Items: [...] }
+        if (Array.isArray(parsed.Items)) return parsed.Items;
+
+        // kalau langsung array
+        if (Array.isArray(parsed)) return parsed;
+
+        // kalau ada wrapper lain (optional)
+        if (Array.isArray(parsed.items)) return parsed.items;
+
+        return [];
+      };
+
+      const fetchAllRsuData = async () => {
+        document.getElementById("refreshAllIcon").innerHTML = '<div class="loading"></div>';
+        document.getElementById("refreshAllText").textContent = "Loading...";
+        allRsuData = await fetchAllDataFromAWS();
+        // ✅ notif hanya kalau ada device baru
+        const currentIds = Object.keys(allRsuData || {});
+        const newIds = currentIds.filter((id) => !knownDeviceIds.has(id));
+
+        if (newIds.length) {
+          showNotification(`Device baru terdeteksi: ${newIds.join(", ")}`, "success");
+          newIds.forEach((id) => knownDeviceIds.add(id));
+          localStorage.setItem("knownDeviceIds", JSON.stringify([...knownDeviceIds]));
+        }
+
+        renderRsuCards();
+        document.getElementById("lastUpdatedTime").textContent = formatTime(new Date());
+        document.getElementById("refreshAllIcon").innerHTML = "";
+        document.getElementById("refreshAllText").textContent = "Refresh All";
+      };
+
+      const renderRsuCards = () => {
+        const rsuContainer = document.getElementById("rsuContainer");
+        rsuContainer.innerHTML = "";
+
+        const locationSearchInput = document.getElementById("locationSearch");
+        const detailSearchInput = document.getElementById("detailSearch");
+        const measureSearchInput = document.getElementById("measureSearch");
+
+        const locationSearch = locationSearchInput ? locationSearchInput.value.toLowerCase() : "";
+        const detailSearch = detailSearchInput ? detailSearchInput.value.toLowerCase() : "";
+        const measureSearch = measureSearchInput ? measureSearchInput.value.toLowerCase() : "";
+
+        const devices = Object.keys(allRsuData || {}).sort();
+        let hasVisibleCards = false;
+
+        const start = new Date(rangeStartDate);
+        const end = new Date(rangeEndDate);
+        const rangeLabel = `${formatDate(start)} s/d ${formatDate(end)}`;
+        const period = getAutoPeriod();
+
+        devices.forEach((deviceId) => {
+          if (locationSearch && !deviceId.toLowerCase().includes(locationSearch)) return;
+
+          const rsuData = allRsuData[deviceId] || [];
+          if (!rsuData.length) return;
+
+          const filteredData = filterDataByPeriod(rsuData);
+          if (!filteredData || filteredData.length === 0) return;
+
+          const latestNonNull = [...filteredData].reverse().find((x) => x && (Number.isFinite(x.AQI) || Number.isFinite(x.MQ7) || Number.isFinite(x.GP2Y1010)));
+          const latestData = latestNonNull || filteredData[filteredData.length - 1];
+          const categoryInfo = latestData.aqiInfo || latestData.indexInfo || getCategoryFromIndex(latestData.AQI);
+
+          if (
+            detailSearch &&
+            !String(categoryInfo.status || "")
+              .toLowerCase()
+              .includes(detailSearch)
+          )
+            return;
+
+          const aqiStr = String(latestData.AQI ?? "");
+          const coStr = String(latestData.MQ7 ?? "");
+          const pmStr = String(latestData.GP2Y1010 ?? "");
+          if (measureSearch && !aqiStr.includes(measureSearch) && !coStr.includes(measureSearch) && !pmStr.includes(measureSearch)) return;
+
+          const aqiValues = filteredData.map((d) => Number(d.AQI)).filter(Number.isFinite);
+          const coValues = filteredData.map((d) => Number(d.MQ7)).filter(Number.isFinite);
+          const pm25Values = filteredData.map((d) => Number(d.GP2Y1010)).filter(Number.isFinite);
+
+          const avgAqi = aqiValues.length ? (aqiValues.reduce((a, b) => a + b, 0) / aqiValues.length).toFixed(1) : "-";
+          const maxAqi = aqiValues.length ? Math.max(...aqiValues) : "-";
+          const minAqi = aqiValues.length ? Math.min(...aqiValues) : "-";
+          const avgCo = coValues.length ? (coValues.reduce((a, b) => a + b, 0) / coValues.length).toFixed(2) : "-";
+          const avgPm25 = pm25Values.length ? (pm25Values.reduce((a, b) => a + b, 0) / pm25Values.length).toFixed(2) : "-";
+
+          // ✅ TABEL HARUS PAKAI DATA ASLI (raw) dalam range, supaya Timestamp cocok untuk Edit/Delete API
+          const tableSource = filterRawByRange(rsuData).filter((it) => Number.isFinite(it.AQI) || Number.isFinite(it.MQ7) || Number.isFinite(it.GP2Y1010));
+          const tableData = tableSource.slice(-10).reverse();
+
+          const cardHtml = `
+      <div class="rsu-card bg-white rounded-lg shadow-sm overflow-hidden animate-fade-in-up">
+        <div class="p-4 border-b flex justify-between items-center">
+          <div class="flex items-center space-x-3">
+            <h3 class="text-xl font-bold text-gray-800">${deviceId}</h3>
+            <span class="aqi-indicator" style="background-color: ${categoryInfo.color}"></span>
+            <span class="status-badge ${categoryInfo.bgColor} ${categoryInfo.textColor}">
+              ${categoryInfo.status} (AQI: ${latestData.AQI ?? "-"})
+            </span>
+          </div>
+
+          <!-- ✅ tombol ZIP pojok kanan atas -->
+          <div class="flex items-center gap-3">
+            <div class="hidden md:block text-xs text-gray-500">
+              ${rangeLabel} • ${getAutoPeriodLabel(period)}
+            </div>
+            <button
+              class="download-btn bg-gray-900 hover:bg-gray-700 text-white py-2 px-3 rounded-lg text-xs font-semibold"
+              onclick="downloadZipReport('${deviceId}').catch(err => showNotification(err.message,'error'))">
+              ⬇ ZIP
+            </button>
+          </div>
+        </div>
+
+        <div class="p-4">
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div class="bg-gray-50 p-4 rounded-lg text-center">
+              <p class="text-2xl font-bold text-gray-800">${latestData.AQI ?? "-"}</p>
+              <p class="text-sm text-gray-600">AQI</p>
+              <p class="text-xs text-gray-500">Rata: ${avgAqi}</p>
+            </div>
+            <div class="bg-gray-50 p-4 rounded-lg text-center">
+              <p class="text-2xl font-bold text-gray-800">${latestData.MQ7 ?? "-"}</p>
+              <p class="text-sm text-gray-600">CO (ppm)</p>
+              <p class="text-xs text-gray-500">Rata: ${avgCo}</p>
+            </div>
+            <div class="bg-gray-50 p-4 rounded-lg text-center">
+              <p class="text-2xl font-bold text-gray-800">${latestData.GP2Y1010 ?? "-"}</p>
+              <p class="text-sm text-gray-600">PM2.5 (µg/m³)</p>
+              <p class="text-xs text-gray-500">Rata: ${avgPm25}</p>
+            </div>
+            <div class="bg-gray-50 p-4 rounded-lg text-center">
+              <p class="text-lg font-bold text-gray-800">${minAqi} - ${maxAqi}</p>
+              <p class="text-sm text-gray-600">Rentang AQI</p>
+              <p class="text-xs text-gray-500">${getAutoPeriodLabel(period)}</p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <div class="chart-container">
+              <h4 class="text-lg font-semibold text-gray-700 mb-2">AQI - ${deviceId}</h4>
+              <canvas id="aqiChart-${deviceId}"></canvas>
+            </div>
+            <div class="chart-container">
+              <h4 class="text-lg font-semibold text-gray-700 mb-2">Pollutant - ${deviceId}</h4>
+              <canvas id="pollutantChart-${deviceId}"></canvas>
+            </div>
+          </div>
+
+          <!-- ✅ HISTORI (tanpa Lat/Lng) -->
+          <div class="mb-2 flex items-center justify-between">
+            <h4 class="text-md font-semibold text-gray-700">Histori (terbaru)</h4>
+            <span class="text-xs text-gray-500">Tampilan otomatis mengikuti range</span>
+          </div>
+
+          <div class="overflow-x-auto border rounded-lg bg-white">
+            <table class="min-w-full text-sm">
+              <thead class="bg-gray-100 text-gray-700">
+  <tr>
+    <th class="px-4 py-2 text-left">Timestamp</th>
+    <th class="px-4 py-2 text-left">AQI</th>
+    <th class="px-4 py-2 text-left">PM2.5</th>
+    <th class="px-4 py-2 text-left">CO</th>
+    <th class="px-4 py-2 text-left">Status</th>
+    ${isAdmin ? `<th class="px-4 py-2 text-right">Action</th>` : ``}
+  </tr>
+</thead>
+
+<tbody>
+  ${
+    tableData.length
+      ? tableData
+          .map((it) => {
+            const cat = Number.isFinite(it.AQI) ? getCategoryFromIndex(it.AQI) : { bgColor: "bg-gray-200", textColor: "text-gray-700", status: "-" };
+
+            return `
+              <tr class="border-t">
+                <td class="px-4 py-2">${it.Timestamp ?? "-"}</td>
+                <td class="px-4 py-2 font-semibold">${it.AQI ?? "-"}</td>
+                <td class="px-4 py-2">${it.GP2Y1010 ?? "-"}</td>
+                <td class="px-4 py-2">${it.MQ7 ?? "-"}</td>
+                <td class="px-4 py-2">
+                  <span class="px-2 py-1 rounded-full text-xs ${cat.bgColor} ${cat.textColor}">
+                    ${cat.status}
+                  </span>
+                </td>
+
+                ${
+                  isAdmin
+                    ? `
+                      <td class="px-4 py-2 text-right whitespace-nowrap">
+                        <button
+                          class="edit-btn"
+                          data-action="edit"
+                          data-device="${it.DeviceID_Tanggal}"
+                          data-ts="${it.Timestamp}"
+                          data-aqi="${it.AQI ?? ""}"
+                          data-co="${it.MQ7 ?? ""}"
+                          data-pm="${it.GP2Y1010 ?? ""}"
+                          data-lat="${it.latitude ?? ""}"
+                          data-lon="${it.longitude ?? ""}"
+                        >Edit</button>
+
+                        <button
+                          class="delete-btn"
+                          data-action="delete"
+                          data-device="${it.DeviceID_Tanggal}"
+                          data-ts="${it.Timestamp}"
+                        >Delete</button>
+                      </td>
+                    `
+                    : ``
+                }
+              </tr>
+            `;
+          })
+          .join("")
+      : `
+        <tr class="border-t">
+          <td class="px-4 py-6 text-center text-gray-500" colspan="${isAdmin ? 6 : 5}">
+            Tidak ada data
+          </td>
+        </tr>
+      `
+  }
+</tbody>
+
+            </table>
+          </div>
+        </div>
+      </div>
+    `;
+
+          rsuContainer.innerHTML += cardHtml;
+          hasVisibleCards = true;
+        });
+
+        if (!hasVisibleCards) {
+          rsuContainer.innerHTML = `
+      <div class="bg-white rounded-lg shadow-sm p-6 text-center">
+        <p class="text-gray-500">Tidak ada data pada rentang tanggal yang dipilih.</p>
+      </div>
+    `;
+          return;
+        }
+
+        setTimeout(() => {
+          devices.forEach((deviceId) => {
+            const rsuData = allRsuData[deviceId] || [];
+            const filteredData = filterDataByPeriod(rsuData);
+            if (filteredData && filteredData.length) renderRsuCharts(deviceId, filteredData);
+          });
+        }, 100);
+      };
+
+      const downloadZipReport = async (deviceId) => {
+        const start = rangeStartDate ? formatDateForApi(rangeStartDate) : formatDateForApi(currentDate);
+        const end = rangeEndDate ? formatDateForApi(rangeEndDate) : formatDateForApi(currentDate);
+
+        const url = `${API_CONFIG.ENDPOINTS.DOWNLOAD_API}` + `?deviceID=${encodeURIComponent(deviceId)}` + `&startDate=${encodeURIComponent(start)}` + `&endDate=${encodeURIComponent(end)}`;
+
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`Download gagal: HTTP ${res.status}`);
+
+        const blob = await res.blob();
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = `${deviceId}_report_${start}_to_${end}.zip`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      };
+
+      const renderRsuCharts = (deviceId, data) => {
+        if (!data || data.length === 0) return;
+
+        const period = getAutoPeriod();
+
+        const sortedData = [...data].sort((a, b) => (a.TimestampISO > b.TimestampISO ? 1 : -1));
+
+        const labels = sortedData.map((item) => {
+          if (period === "hour") return (item.Timestamp || "").slice(11, 16) || item.Timestamp; // "HH:00"
+          return item.Timestamp;
+        });
+
+        const aqiData = sortedData.map((item) => (Number.isFinite(Number(item.AQI)) ? Number(item.AQI) : null));
+        const coData = sortedData.map((item) => (Number.isFinite(Number(item.MQ7)) ? Number(item.MQ7) : null));
+        const pm25Data = sortedData.map((item) => (Number.isFinite(Number(item.GP2Y1010)) ? Number(item.GP2Y1010) : null));
+
+        // destroy chart lama
+        if (chartInstances[`aqi-${deviceId}`]) chartInstances[`aqi-${deviceId}`].destroy();
+        if (chartInstances[`pollutant-${deviceId}`]) chartInstances[`pollutant-${deviceId}`].destroy();
+
+        // ===== AQI CHART =====
+        const aqiCanvas = document.getElementById(`aqiChart-${deviceId}`);
+        if (aqiCanvas) {
+          const aqiCtx = aqiCanvas.getContext("2d");
+          chartInstances[`aqi-${deviceId}`] = new Chart(aqiCtx, {
+            type: "line",
+            data: {
+              labels,
+              datasets: [
+                {
+                  label: "AQI",
+                  data: aqiData,
+                  borderColor: "#00796b",
+                  backgroundColor: "rgba(0, 121, 107, 0.1)",
+                  borderWidth: 3,
+                  fill: true,
+                  tension: 0.4,
+                  pointRadius: 4,
+                  spanGaps: false, // null akan jadi gap (normal)
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              interaction: { intersect: false, mode: "index" },
+              scales: {
+                y: { beginAtZero: true, title: { display: true, text: "AQI" } },
+                x: {
+                  title: {
+                    display: true,
+                    text: period === "hour" ? "Jam" : period === "day" ? "Tanggal" : "Minggu",
+                  },
+                },
+              },
+              plugins: { legend: { display: false } },
+            },
+          });
+        }
+
+        // ===== POLLUTANT CHART =====
+        const polCanvas = document.getElementById(`pollutantChart-${deviceId}`);
+        if (polCanvas) {
+          const polCtx = polCanvas.getContext("2d");
+          chartInstances[`pollutant-${deviceId}`] = new Chart(polCtx, {
+            type: "line",
+            data: {
+              labels,
+              datasets: [
+                {
+                  label: "CO (ppm)",
+                  data: coData,
+                  borderColor: "rgba(255, 107, 107, 1)",
+                  backgroundColor: "rgba(255, 107, 107, 0.1)",
+                  borderWidth: 3,
+                  fill: true,
+                  tension: 0.4,
+                  pointRadius: 4,
+                  spanGaps: false,
+                },
+                {
+                  label: "PM2.5 (µg/m³)",
+                  data: pm25Data,
+                  borderColor: "rgba(169, 124, 240, 1)",
+                  backgroundColor: "rgba(169, 124, 240, 0.1)",
+                  borderWidth: 3,
+                  fill: true,
+                  tension: 0.4,
+                  pointRadius: 4,
+                  spanGaps: false,
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              interaction: { intersect: false, mode: "index" },
+              scales: {
+                y: { beginAtZero: true, title: { display: true, text: "Konsentrasi" } },
+                x: {
+                  title: {
+                    display: true,
+                    text: period === "hour" ? "Jam" : period === "day" ? "Tanggal" : "Minggu",
+                  },
+                },
+              },
+            },
+          });
+        }
+      };
+
+      // Initialize the page
+      const init = () => {
+        // Cek login admin dulu
+        checkAuth();
+
+        // ==== AUTH & MODAL LOGIN ====
+        const loginForm = document.getElementById("loginForm");
+        if (loginForm) loginForm.addEventListener("submit", handleLogin);
+
+        const closeLoginBtn = document.getElementById("closeLoginBtn");
+        if (closeLoginBtn) closeLoginBtn.addEventListener("click", closeLoginModal);
+
+        const addForm = document.getElementById("addForm");
+        if (addForm) addForm.addEventListener("submit", handleAdd);
+
+        const closeAddBtn = document.getElementById("closeAddBtn");
+        if (closeAddBtn) closeAddBtn.addEventListener("click", closeAddModal);
+
+        const editForm = document.getElementById("editForm");
+        if (editForm) editForm.addEventListener("submit", handleEdit);
+
+        const closeEditBtn = document.getElementById("closeEditBtn");
+        if (closeEditBtn) closeEditBtn.addEventListener("click", closeEditModal);
+
+        // Tombol "+ Add New Record"
+        const addBtn = document.getElementById("addBtn");
+        // Kalau tombolnya sudah dihapus dari HTML, baris ini aman-aman saja
+        if (addBtn) addBtn.addEventListener("click", showAddModal);
+
+        // ==== HEALTH HELPLINE (samakan behaviour dengan dashboard) ====
+        const healthBtn = document.getElementById("health-helpline-btn");
+        const healthModal = document.getElementById("health-helpline-modal");
+        // tombol X di dalam modal (id berbeda dengan dashboard)
+        const healthCloseBtn = document.getElementById("close-health-helpline-btn") || document.getElementById("close-modal");
+
+        if (healthBtn && healthModal) {
+          healthBtn.addEventListener("click", showHealthHelplineModal);
+        }
+
+        if (healthCloseBtn && healthModal) {
+          healthCloseBtn.addEventListener("click", closeHealthHelplineModal);
+        }
+
+        if (healthModal) {
+          healthModal.addEventListener("click", (e) => {
+            // klik di area gelap di luar card juga menutup modal
+            if (e.target === healthModal) {
+              closeHealthHelplineModal();
+            }
+          });
+        }
+
+        // ==== HISTORY PAGE UTAMA ====
+        initializeDatePickers();
+
+        const refreshAllBtn = document.getElementById("refreshAllBtn");
+        if (refreshAllBtn) refreshAllBtn.addEventListener("click", fetchAllRsuData);
+
+        document.querySelectorAll(".period-btn").forEach((btn) => {
+          btn.addEventListener("click", (e) => {
+            document.querySelectorAll(".period-btn").forEach((b) => {
+              b.classList.remove("text-white", "bg-dark-teal", "shadow");
+              b.classList.add("text-gray-500", "hover:bg-gray-200");
+            });
+
+            const target = e.currentTarget || e.target;
+            target.classList.add("text-white", "bg-dark-teal", "shadow");
+            target.classList.remove("text-gray-500", "hover:bg-gray-200");
+
+            currentPeriod = target.dataset.period;
+            renderRsuCards();
+          });
+        });
+
+        // ==== SEARCH INPUTS ====
+        const locationSearchInput = document.getElementById("locationSearch");
+        if (locationSearchInput) {
+          locationSearchInput.addEventListener("input", renderRsuCards);
+        }
+
+        // Kalau input Detail & Measurement sudah dihapus, ini tidak error
+        const detailSearchInput = document.getElementById("detailSearch");
+        if (detailSearchInput) {
+          detailSearchInput.addEventListener("input", renderRsuCards);
+        }
+
+        const measureSearchInput = document.getElementById("measureSearch");
+        if (measureSearchInput) {
+          measureSearchInput.addEventListener("input", renderRsuCards);
+        }
+
+        // ✅ Event delegation untuk tombol Edit/Delete (karena tabel dirender via innerHTML)
+        const rsuContainer = document.getElementById("rsuContainer");
+        if (rsuContainer) {
+          rsuContainer.addEventListener("click", (e) => {
+            const btn = e.target.closest("button[data-action]");
+            if (!btn) return;
+
+            const action = btn.dataset.action;
+            const deviceID_Tanggal = btn.dataset.device;
+            const timestamp = btn.dataset.ts;
+
+            if (action === "edit") {
+              const jam = extractJam(timestamp);
+
+              showEditModal(deviceID_Tanggal, jam, timestamp, btn.dataset.aqi || "", btn.dataset.lat || "", btn.dataset.lon || "", btn.dataset.co || "", btn.dataset.pm || "");
+            }
+
+            if (action === "delete") {
+              handleDelete(deviceID_Tanggal, timestamp);
+            }
+          });
+        }
+
+        // Load data awal
+        fetchAllRsuData();
+      };
+
+      document.addEventListener("DOMContentLoaded", init);
+    </script>
+  </body>
+</html>
